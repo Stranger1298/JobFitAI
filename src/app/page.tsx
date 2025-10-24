@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { CardHeader, CardContent, CardTitle, GlowCard } from '@/components/ui/card';
 import { AnimatedBackground } from '@/components/ui/animated-background';
-import { AnalysisDashboard } from '@/components/analysis-dashboard';
+import { EnhancedAnalysisDashboard } from '@/components/enhanced-analysis-dashboard';
 import { AnalysisLoading } from '@/components/ui/loading';
 
 export default function Home() {
@@ -376,28 +376,7 @@ export default function Home() {
 
         {/* Results */}
         {analysis && !loading && (
-          <div className="max-w-7xl mx-auto">
-            <AnalysisDashboard analysis={analysis} />
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.5 }}
-              className="mt-8 text-center"
-            >
-              <Button 
-                onClick={handleReset} 
-                variant="glow" 
-                size="xl"
-                icon={
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                }
-              >
-                Analyze Another Resume
-              </Button>
-            </motion.div>
-          </div>
+          <EnhancedAnalysisDashboard analysis={analysis} />
         )}
       </div>
     </div>

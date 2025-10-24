@@ -1,230 +1,172 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { EnhancedAnalysisDashboard } from '@/components/enhanced-analysis-dashboard';
 
 interface AnalysisResultsProps {
   analysis: string;
+  resumePreview?: string;
+  jobDescriptionPreview?: string;
   className?: string;
+  onReset?: () => void;
 }
 
-export function AnalysisResults({ analysis, className }: AnalysisResultsProps) {
-  // Parse the markdown-like analysis into sections
-  const parseAnalysis = (text: string) => {
-    const sections = text.split('##').filter(section => section.trim().length > 0);
-    return sections.map(section => {
-      const lines = section.trim().split('\n');
-      const title = lines[0].trim();
-      const content = lines.slice(1).join('\n').trim();
-      return { title, content };
-    });
-  };
-
-  const sections = parseAnalysis(analysis);
-
-  const formatContent = (content: string) => {
-    return content.split('\n').map((line, index) => {
-      line = line.trim();
-      if (line.startsWith('- ')) {
-        return (
-          <li key={index} className="ml-4 mb-2 flex items-start">
-            <span className="text-blue-500 mr-2 mt-1">•</span>
-            <span>{line.substring(2)}</span>
-          </li>
-        );
-      } else if (line.startsWith('* ')) {
-        return (
-          <li key={index} className="ml-4 mb-2 flex items-start">
-            <span className="text-blue-500 mr-2 mt-1">•</span>
-            <span>{line.substring(2)}</span>
-          </li>
-        );
-      } else if (line.startsWith('**') && line.endsWith('**')) {
-        // Bold formatting for statistics and key metrics
-        const boldText = line.slice(2, -2);
-        return (
-          <p key={index} className="mb-2 font-semibold text-gray-900 dark:text-gray-100">
-            {boldText}
-          </p>
-        );
-      } else if (line.includes('Score:') || line.includes('Rate:') || line.includes('%')) {
-        // Highlight scores and percentages
-        return (
-          <p key={index} className="mb-2 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 px-3 py-2 rounded-lg border-l-4 border-blue-400">
-            <span className="font-medium text-blue-800 dark:text-blue-300">{line}</span>
-          </p>
-        );
-      } else if (line.startsWith('Priority ') || line.startsWith('Strength ') || line.startsWith('Immediate ') || line.startsWith('Short-term ') || line.startsWith('Long-term ')) {
-        // Highlight action items and priorities
-        return (
-          <p key={index} className="mb-2 font-medium text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/20 px-3 py-1 rounded-md">
-            {line}
-          </p>
-        );
-      } else if (line.length > 0) {
-        return (
-          <p key={index} className="mb-2 leading-relaxed">
-            {line}
-          </p>
-        );
-      }
-      return null;
-    });
-  };
-
-  const getSectionColor = (title: string) => {
-    const lowerTitle = title.toLowerCase();
-    if (lowerTitle.includes('score') || lowerTitle.includes('match')) {
-      return 'border-blue-200/60 bg-gradient-to-br from-blue-50/90 via-white/80 to-indigo-50/70 dark:border-blue-500/30 dark:from-blue-950/40 dark:via-slate-900/60 dark:to-indigo-950/40 shadow-lg shadow-blue-500/10 hover:shadow-blue-500/20';
-    } else if (lowerTitle.includes('strength') || lowerTitle.includes('competitiveness')) {
-      return 'border-emerald-200/60 bg-gradient-to-br from-emerald-50/90 via-white/80 to-green-50/70 dark:border-emerald-500/30 dark:from-emerald-950/40 dark:via-slate-900/60 dark:to-green-950/40 shadow-lg shadow-emerald-500/10 hover:shadow-emerald-500/20';
-    } else if (lowerTitle.includes('improvement') || lowerTitle.includes('missing') || lowerTitle.includes('action plan')) {
-      return 'border-amber-200/60 bg-gradient-to-br from-amber-50/90 via-white/80 to-orange-50/70 dark:border-amber-500/30 dark:from-amber-950/40 dark:via-slate-900/60 dark:to-orange-950/40 shadow-lg shadow-amber-500/10 hover:shadow-amber-500/20';
-    } else if (lowerTitle.includes('recommendation') || lowerTitle.includes('interview')) {
-      return 'border-purple-200/60 bg-gradient-to-br from-purple-50/90 via-white/80 to-violet-50/70 dark:border-purple-500/30 dark:from-purple-950/40 dark:via-slate-900/60 dark:to-violet-950/40 shadow-lg shadow-purple-500/10 hover:shadow-purple-500/20';
-    } else if (lowerTitle.includes('ats') || lowerTitle.includes('keyword') || lowerTitle.includes('optimization')) {
-      return 'border-indigo-200/60 bg-gradient-to-br from-indigo-50/90 via-white/80 to-blue-50/70 dark:border-indigo-500/30 dark:from-indigo-950/40 dark:via-slate-900/60 dark:to-blue-950/40 shadow-lg shadow-indigo-500/10 hover:shadow-indigo-500/20';
-    } else if (lowerTitle.includes('skills') || lowerTitle.includes('technical')) {
-      return 'border-cyan-200/60 bg-gradient-to-br from-cyan-50/90 via-white/80 to-teal-50/70 dark:border-cyan-500/30 dark:from-cyan-950/40 dark:via-slate-900/60 dark:to-teal-950/40 shadow-lg shadow-cyan-500/10 hover:shadow-cyan-500/20';
-    } else if (lowerTitle.includes('experience') || lowerTitle.includes('career')) {
-      return 'border-rose-200/60 bg-gradient-to-br from-rose-50/90 via-white/80 to-pink-50/70 dark:border-rose-500/30 dark:from-rose-950/40 dark:via-slate-900/60 dark:to-pink-950/40 shadow-lg shadow-rose-500/10 hover:shadow-rose-500/20';
-    } else if (lowerTitle.includes('education') || lowerTitle.includes('certification')) {
-      return 'border-violet-200/60 bg-gradient-to-br from-violet-50/90 via-white/80 to-purple-50/70 dark:border-violet-500/30 dark:from-violet-950/40 dark:via-slate-900/60 dark:to-purple-950/40 shadow-lg shadow-violet-500/10 hover:shadow-violet-500/20';
-    } else if (lowerTitle.includes('structure') || lowerTitle.includes('format')) {
-      return 'border-slate-200/60 bg-gradient-to-br from-slate-50/90 via-white/80 to-gray-50/70 dark:border-slate-500/30 dark:from-slate-950/40 dark:via-slate-900/60 dark:to-gray-950/40 shadow-lg shadow-slate-500/10 hover:shadow-slate-500/20';
-    }
-    return 'border-gray-200/60 bg-gradient-to-br from-white/90 via-gray-50/80 to-slate-50/70 dark:border-gray-500/30 dark:from-gray-800/40 dark:via-slate-800/60 dark:to-gray-900/40 shadow-lg shadow-gray-500/10 hover:shadow-gray-500/20';
-  };
-
-  const getSectionIcon = (title: string) => {
-    const lowerTitle = title.toLowerCase();
-    if (lowerTitle.includes('score') || lowerTitle.includes('match')) {
-      return (
-        <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-        </svg>
-      );
-    } else if (lowerTitle.includes('strength') || lowerTitle.includes('competitiveness')) {
-      return (
-        <svg className="w-5 h-5 text-emerald-600 dark:text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-        </svg>
-      );
-    } else if (lowerTitle.includes('skills') || lowerTitle.includes('technical')) {
-      return (
-        <svg className="w-5 h-5 text-cyan-600 dark:text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-        </svg>
-      );
-    } else if (lowerTitle.includes('experience') || lowerTitle.includes('career')) {
-      return (
-        <svg className="w-5 h-5 text-rose-600 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2h8z" />
-        </svg>
-      );
-    } else if (lowerTitle.includes('education') || lowerTitle.includes('certification')) {
-      return (
-        <svg className="w-5 h-5 text-violet-600 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-        </svg>
-      );
-    } else if (lowerTitle.includes('keyword') || lowerTitle.includes('ats') || lowerTitle.includes('optimization')) {
-      return (
-        <svg className="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-      );
-    } else if (lowerTitle.includes('improvement') || lowerTitle.includes('missing') || lowerTitle.includes('action')) {
-      return (
-        <svg className="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.664-.833-2.464 0L4.268 16.5c-.77.833.192 2.5 1.732 2.5z" />
-        </svg>
-      );
-    } else if (lowerTitle.includes('recommendation') || lowerTitle.includes('interview')) {
-      return (
-        <svg className="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-        </svg>
-      );
-    } else if (lowerTitle.includes('structure') || lowerTitle.includes('format')) {
-      return (
-        <svg className="w-5 h-5 text-slate-600 dark:text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-        </svg>
-      );
-    }
-    return (
-      <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-      </svg>
-    );
-  };
+export function AnalysisResults({ 
+  analysis, 
+  resumePreview, 
+  jobDescriptionPreview, 
+  className, 
+  onReset 
+}: AnalysisResultsProps) {
+  const [showSourceFiles, setShowSourceFiles] = useState(false);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className={cn("w-full space-y-6", className)}
-    >
-      <div className="text-center mb-8">
-        <motion.h2 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-3xl font-bold bg-gradient-to-r from-slate-700 via-blue-600 to-indigo-700 bg-clip-text text-transparent mb-3"
-        >
-          Resume Analysis Results
-        </motion.h2>
-        <motion.p 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="text-gray-600 dark:text-gray-400 text-lg"
-        >
-          AI-powered insights to improve your resume
-        </motion.p>
-      </div>
+    <div className={cn("max-w-7xl mx-auto space-y-8", className)}>
+      {/* Header with controls */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+      >
+        <div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-700 via-blue-600 to-indigo-700 bg-clip-text text-transparent">
+            Analysis Complete
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
+            Review your results and action items below
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-4">
+          {(resumePreview || jobDescriptionPreview) && (
+            <button
+              onClick={() => setShowSourceFiles(!showSourceFiles)}
+              className="flex items-center px-4 py-2 bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white rounded-lg transition-colors duration-200"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              {showSourceFiles ? 'Hide' : 'Show'} Source Files
+            </button>
+          )}
+          
+          {onReset && (
+            <button
+              onClick={onReset}
+              className="flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg shadow-lg transition-all duration-200"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Analyze Another Resume
+            </button>
+          )}
+        </div>
+      </motion.div>
 
-      <div className="grid gap-6">
-        {sections.map((section, index) => (
-          <motion.div
-            key={index}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3, delay: index * 0.1 }}
-            className={cn(
-              "group relative border rounded-2xl p-8 backdrop-blur-sm transition-all duration-500 hover:scale-[1.02] hover:-translate-y-1",
-              getSectionColor(section.title)
-            )}
-          >
-            {/* Decorative corner accent */}
-            <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-white/20 to-transparent rounded-tr-2xl" />
-            
-            {/* Header with icon and title */}
-            <div className="flex items-start gap-4 mb-6">
-              <div className="flex-shrink-0 p-3 rounded-xl bg-white/50 dark:bg-white/10 shadow-sm">
-                {getSectionIcon(section.title)}
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 leading-tight">
-                  {section.title}
+      {/* Source Files Panel (Collapsible) */}
+      {showSourceFiles && (resumePreview || jobDescriptionPreview) && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.3 }}
+          className="grid lg:grid-cols-2 gap-6 overflow-hidden"
+        >
+          {resumePreview && (
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700"
+            >
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center">
+                  <div className="p-2 bg-blue-500/10 rounded-lg mr-3">
+                    <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  Resume Content
                 </h3>
-                <div className="h-0.5 w-12 bg-gradient-to-r from-current to-transparent opacity-30" />
               </div>
-            </div>
-            
-            {/* Content area */}
-            <div className="text-gray-700 dark:text-gray-300 space-y-3 leading-relaxed">
-              {formatContent(section.content)}
-            </div>
-            
-            {/* Bottom border accent */}
-            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-current to-transparent opacity-20" />
-          </motion.div>
-        ))}
-      </div>
-    </motion.div>
+              <div className="p-6">
+                <div className="max-h-96 overflow-y-auto bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+                  <pre className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap font-mono">
+                    {resumePreview}
+                  </pre>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {jobDescriptionPreview && (
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700"
+            >
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center">
+                  <div className="p-2 bg-purple-500/10 rounded-lg mr-3">
+                    <svg className="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2h8z" />
+                    </svg>
+                  </div>
+                  Job Description
+                </h3>
+              </div>
+              <div className="p-6">
+                <div className="max-h-96 overflow-y-auto bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+                  <pre className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap font-mono">
+                    {jobDescriptionPreview}
+                  </pre>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </motion.div>
+      )}
+
+      {/* Main Analysis Dashboard */}
+      <EnhancedAnalysisDashboard analysis={analysis} />
+      
+      {/* Bottom Action Bar */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.8 }}
+        className="flex flex-col sm:flex-row items-center justify-center gap-4 p-6 bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-2xl border border-blue-200/50 dark:border-blue-800/50"
+      >
+        <div className="text-center sm:text-left">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Ready for the next step?
+          </h3>
+          <p className="text-gray-600 dark:text-gray-400 text-sm">
+            Use the insights above to optimize your resume and improve your chances
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <button className="flex items-center px-4 py-2 bg-white/50 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 hover:bg-white/70 dark:hover:bg-gray-800/70 rounded-lg border border-gray-200 dark:border-gray-600 transition-colors duration-200">
+            <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Download Report
+          </button>
+          
+          <button className="flex items-center px-4 py-2 bg-white/50 dark:bg-gray-800/50 text-gray-700 dark:text-gray-300 hover:bg-white/70 dark:hover:bg-gray-800/70 rounded-lg border border-gray-200 dark:border-gray-600 transition-colors duration-200">
+            <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+            </svg>
+            Share Analysis
+          </button>
+        </div>
+      </motion.div>
+    </div>
   );
 }
