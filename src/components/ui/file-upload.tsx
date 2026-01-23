@@ -2,7 +2,6 @@
 
 import React, { useCallback, useState } from 'react';
 import { useDropzone, FileRejection } from 'react-dropzone';
-import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 interface FileUploadProps {
@@ -65,51 +64,46 @@ export function FileUpload({
       <div
         {...getRootProps()}
         className={cn(
-          "relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all duration-200",
+          "relative border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all duration-200",
           isDragActive 
-            ? "border-blue-500 bg-blue-50 dark:bg-blue-950/20" 
-            : "border-gray-300 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600",
-          error && "border-red-500 bg-red-50 dark:bg-red-950/20"
+            ? "border-red-500 bg-red-500/10" 
+            : "border-zinc-700 hover:border-red-500/50 bg-zinc-900",
+          error && "border-red-500 bg-red-950/20"
         )}
       >
         <input {...getInputProps()} />
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="space-y-4"
-        >
+        <div className="space-y-3">
           {!file ? (
             <>
-              <div className="mx-auto w-12 h-12 text-gray-400">
+              <div className="mx-auto w-12 h-12 text-red-500">
                 <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
               </div>
               <div>
-                <p className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                <p className="text-sm font-semibold text-white">
                   {isDragActive ? "Drop your resume here" : "Upload your resume"}
                 </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                <p className="text-xs text-zinc-400 mt-1">
                   Drag and drop or click to browse
                 </p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+                <p className="text-xs text-zinc-500 mt-1">
                   Supports PDF, TXT, DOC, DOCX (max 10MB)
                 </p>
               </div>
             </>
           ) : (
             <div className="space-y-2">
-              <div className="mx-auto w-12 h-12 text-green-500">
-                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div className="mx-auto w-10 h-10 text-green-500 bg-green-500/10 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
               <div>
-                <p className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                <p className="text-sm font-semibold text-white truncate">
                   {file.name}
                 </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-xs text-zinc-400">
                   {(file.size / 1024 / 1024).toFixed(2)} MB
                 </p>
               </div>
@@ -118,23 +112,19 @@ export function FileUpload({
                   e.stopPropagation();
                   removeFile();
                 }}
-                className="mt-2 px-3 py-1 text-sm bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors"
+                className="px-3 py-1.5 text-xs bg-red-500/10 text-red-400 border border-red-500/30 rounded-lg hover:bg-red-500/20 transition-colors font-medium"
               >
                 Remove
               </button>
             </div>
           )}
-        </motion.div>
+        </div>
       </div>
       
       {error && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-2 text-sm text-red-600 dark:text-red-400"
-        >
+        <div className="mt-2 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
           {error}
-        </motion.div>
+        </div>
       )}
     </div>
   );

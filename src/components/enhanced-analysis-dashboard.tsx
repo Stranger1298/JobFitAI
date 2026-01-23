@@ -5,6 +5,51 @@ import { motion } from 'framer-motion';
 import { SkillsRadarChart, ComparisonBarChart, ProgressRing } from '@/components/ui/charts';
 import { cn } from '@/lib/utils';
 
+// Helper function to clean markdown formatting
+const cleanMarkdown = (text: string): string => {
+  return text
+    .replace(/\*\*([^*]+)\*\*/g, '$1') // Remove bold **text**
+    .replace(/\*([^*]+)\*/g, '$1')     // Remove italic *text*
+    .replace(/__([^_]+)__/g, '$1')     // Remove bold __text__
+    .replace(/_([^_]+)_/g, '$1')       // Remove italic _text_
+    .replace(/`([^`]+)`/g, '$1')       // Remove code `text`
+    .trim();
+};
+
+// Helper function to render formatted text
+const formatContent = (content: string): React.ReactNode => {
+  const lines = content.split('\n');
+  return lines.map((line, idx) => {
+    const cleanedLine = cleanMarkdown(line);
+    if (!cleanedLine) return null;
+    
+    // Check if it's a list item
+    if (cleanedLine.startsWith('- ')) {
+      return (
+        <div key={idx} className="flex items-start gap-2 py-1">
+          <span className="text-red-500 mt-1">•</span>
+          <span>{cleanedLine.substring(2)}</span>
+        </div>
+      );
+    }
+    
+    // Check if it contains a colon (label: value format)
+    const colonIndex = cleanedLine.indexOf(':');
+    if (colonIndex > 0 && colonIndex < 50) {
+      const label = cleanedLine.substring(0, colonIndex);
+      const value = cleanedLine.substring(colonIndex + 1).trim();
+      return (
+        <div key={idx} className="py-1">
+          <span className="text-white font-semibold">{label}:</span>
+          <span className="text-zinc-300 ml-2">{value}</span>
+        </div>
+      );
+    }
+    
+    return <div key={idx} className="py-1">{cleanedLine}</div>;
+  });
+};
+
 interface EnhancedAnalysisDashboardProps {
   analysis: string;
   className?: string;
@@ -268,10 +313,10 @@ export function EnhancedAnalysisDashboard({ analysis, className }: EnhancedAnaly
   const TabButton = ({ id, label, icon }: { id: typeof activeTab; label: string; icon: string }) => (
     <button
       onClick={() => setActiveTab(id)}
-      className={`flex items-center px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+      className={`flex items-center px-6 py-3 rounded-lg font-semibold transition-all duration-200 ${
         activeTab === id
-          ? 'bg-blue-600 text-white shadow-lg'
-          : 'bg-white/10 text-gray-300 hover:bg-white/20 hover:text-white'
+          ? 'bg-red-600 text-white'
+          : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white border border-zinc-700'
       }`}
     >
       <span className="mr-2">{icon}</span>
@@ -292,7 +337,7 @@ export function EnhancedAnalysisDashboard({ analysis, className }: EnhancedAnaly
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="text-4xl font-bold bg-gradient-to-r from-slate-700 via-blue-600 to-indigo-700 bg-clip-text text-transparent"
+          className="text-4xl font-bold text-white"
         >
           Resume Analysis Dashboard
         </motion.h2>
@@ -302,20 +347,23 @@ export function EnhancedAnalysisDashboard({ analysis, className }: EnhancedAnaly
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-3xl p-8 border border-blue-200 dark:border-blue-800"
+          className="relative bg-zinc-900 rounded-3xl p-8 border border-zinc-800"
         >
+          {/* Top accent line */}
+          <div className="absolute inset-x-0 top-0 h-0.5 bg-red-600 rounded-t-3xl" />
+          
           <div className="flex flex-col md:flex-row items-center justify-center gap-8">
             <div className="text-center">
-              <div className="text-6xl font-bold text-blue-600 dark:text-blue-400 mb-2">
+              <div className="text-7xl font-bold text-red-500 mb-2">
                 {parsedData.overallScore}%
               </div>
-              <div className="text-xl font-semibold text-gray-700 dark:text-gray-300">
+              <div className="text-xl font-semibold text-zinc-300">
                 Overall Match Score
               </div>
-              <div className={`text-sm mt-2 px-4 py-2 rounded-full font-medium ${
-                parsedData.overallScore >= 80 ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400' :
-                parsedData.overallScore >= 60 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400' :
-                'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'
+              <div className={`text-sm mt-3 px-4 py-2 rounded-full font-medium border ${
+                parsedData.overallScore >= 80 ? 'bg-green-500/10 text-green-400 border-green-500/30' :
+                parsedData.overallScore >= 60 ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30' :
+                'bg-red-500/10 text-red-400 border-red-500/30'
               }`}>
                 {parsedData.overallScore >= 80 ? '🎉 Excellent Match!' :
                  parsedData.overallScore >= 60 ? '👍 Good Foundation' :
@@ -324,21 +372,21 @@ export function EnhancedAnalysisDashboard({ analysis, className }: EnhancedAnaly
             </div>
             
             <div className="grid grid-cols-2 gap-4">
-              <div className="text-center p-4 bg-white/50 dark:bg-gray-800/50 rounded-xl">
-                <div className="text-2xl font-bold text-emerald-600">{parsedData.skillsScore}%</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">Skills Match</div>
+              <div className="text-center p-4 bg-zinc-800/50 border border-zinc-700/50 rounded-xl backdrop-blur-sm">
+                <div className="text-2xl font-bold text-emerald-400">{parsedData.skillsScore}%</div>
+                <div className="text-sm text-zinc-500">Skills Match</div>
               </div>
-              <div className="text-center p-4 bg-white/50 dark:bg-gray-800/50 rounded-xl">
-                <div className="text-2xl font-bold text-purple-600">{parsedData.atsScore}%</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">ATS Score</div>
+              <div className="text-center p-4 bg-zinc-800/50 border border-zinc-700/50 rounded-xl backdrop-blur-sm">
+                <div className="text-2xl font-bold text-purple-400">{parsedData.atsScore}%</div>
+                <div className="text-sm text-zinc-500">ATS Score</div>
               </div>
-              <div className="text-center p-4 bg-white/50 dark:bg-gray-800/50 rounded-xl">
-                <div className="text-2xl font-bold text-orange-600">{parsedData.keywordMatchRate}%</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">Keywords</div>
+              <div className="text-center p-4 bg-zinc-800/50 border border-zinc-700/50 rounded-xl backdrop-blur-sm">
+                <div className="text-2xl font-bold text-orange-400">{parsedData.keywordMatchRate}%</div>
+                <div className="text-sm text-zinc-500">Keywords</div>
               </div>
-              <div className="text-center p-4 bg-white/50 dark:bg-gray-800/50 rounded-xl">
-                <div className="text-2xl font-bold text-cyan-600">{parsedData.marketCompetitiveness}%</div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">Market Ready</div>
+              <div className="text-center p-4 bg-zinc-800/50 border border-zinc-700/50 rounded-xl backdrop-blur-sm">
+                <div className="text-2xl font-bold text-cyan-400">{parsedData.marketCompetitiveness}%</div>
+                <div className="text-sm text-zinc-500">Market Ready</div>
               </div>
             </div>
           </div>
@@ -356,10 +404,10 @@ export function EnhancedAnalysisDashboard({ analysis, className }: EnhancedAnaly
           {parsedData.keyInsights.map((insight, index) => (
             <div
               key={index}
-              className={`p-4 rounded-xl border-l-4 ${
-                insight.type === 'positive' ? 'border-green-400 bg-green-50 dark:bg-green-900/20' :
-                insight.type === 'warning' ? 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20' :
-                'border-red-400 bg-red-50 dark:bg-red-900/20'
+              className={`p-4 rounded-xl border-l-4 backdrop-blur-sm ${
+                insight.type === 'positive' ? 'border-green-500 bg-green-500/10' :
+                insight.type === 'warning' ? 'border-yellow-500 bg-yellow-500/10' :
+                'border-red-500 bg-red-500/10'
               }`}
             >
               <div className="flex items-start space-x-3">
@@ -367,11 +415,11 @@ export function EnhancedAnalysisDashboard({ analysis, className }: EnhancedAnaly
                   {insight.type === 'positive' ? '✅' : insight.type === 'warning' ? '⚠️' : '🚨'}
                 </span>
                 <p className={`text-sm font-medium ${
-                  insight.type === 'positive' ? 'text-green-700 dark:text-green-300' :
-                  insight.type === 'warning' ? 'text-yellow-700 dark:text-yellow-300' :
-                  'text-red-700 dark:text-red-300'
+                  insight.type === 'positive' ? 'text-green-400' :
+                  insight.type === 'warning' ? 'text-yellow-400' :
+                  'text-red-400'
                 }`}>
-                  {insight.message}
+                  {cleanMarkdown(insight.message)}
                 </p>
               </div>
             </div>
@@ -386,7 +434,7 @@ export function EnhancedAnalysisDashboard({ analysis, className }: EnhancedAnaly
         transition={{ duration: 0.5, delay: 0.4 }}
         className="flex justify-center"
       >
-        <div className="flex space-x-2 p-2 bg-gray-900/50 rounded-xl backdrop-blur-sm">
+        <div className="flex space-x-2 p-2 bg-zinc-900/80 border border-zinc-800 rounded-xl backdrop-blur-sm">
           <TabButton id="overview" label="Overview" icon="📊" />
           <TabButton id="details" label="Detailed Analysis" icon="🔍" />
           <TabButton id="actions" label="Action Plan" icon="🚀" />
@@ -404,8 +452,8 @@ export function EnhancedAnalysisDashboard({ analysis, className }: EnhancedAnaly
           <div className="space-y-8">
             {/* Charts Section */}
             <div className="grid lg:grid-cols-2 gap-8">
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+              <div className="bg-zinc-900/80 rounded-2xl p-6 shadow-lg border border-zinc-800">
+                <h3 className="text-lg font-bold text-white mb-4 flex items-center">
                   <span className="mr-2">🎯</span>Skills Analysis
                 </h3>
                 <div className="flex justify-center">
@@ -413,8 +461,8 @@ export function EnhancedAnalysisDashboard({ analysis, className }: EnhancedAnaly
                 </div>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700">
-                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+              <div className="bg-zinc-900/80 rounded-2xl p-6 shadow-lg border border-zinc-800">
+                <h3 className="text-lg font-bold text-white mb-4 flex items-center">
                   <span className="mr-2">📈</span>Current vs Target Scores
                 </h3>
                 <ComparisonBarChart categories={parsedData.comparisons} />
@@ -423,8 +471,8 @@ export function EnhancedAnalysisDashboard({ analysis, className }: EnhancedAnaly
 
             {/* Quick Wins vs Long-term Goals */}
             <div className="grid md:grid-cols-2 gap-8">
-              <div className="bg-gradient-to-br from-emerald-50 to-green-100 dark:from-emerald-950/30 dark:to-green-950/30 rounded-2xl p-6 border border-emerald-200 dark:border-emerald-800">
-                <h3 className="text-lg font-bold text-emerald-800 dark:text-emerald-300 mb-4 flex items-center">
+              <div className="bg-zinc-900 rounded-2xl p-6 border border-emerald-500/30">
+                <h3 className="text-lg font-bold text-emerald-400 mb-4 flex items-center">
                   <span className="mr-2">💪</span>Key Strengths
                 </h3>
                 <div className="space-y-3">
@@ -433,23 +481,23 @@ export function EnhancedAnalysisDashboard({ analysis, className }: EnhancedAnaly
                       <span className="w-6 h-6 bg-emerald-500 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">
                         {index + 1}
                       </span>
-                      <span className="text-emerald-700 dark:text-emerald-300 text-sm font-medium">{strength}</span>
+                      <span className="text-emerald-300 text-sm font-medium">{cleanMarkdown(strength)}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="bg-gradient-to-br from-orange-50 to-red-100 dark:from-orange-950/30 dark:to-red-950/30 rounded-2xl p-6 border border-orange-200 dark:border-orange-800">
-                <h3 className="text-lg font-bold text-orange-800 dark:text-orange-300 mb-4 flex items-center">
+              <div className="bg-zinc-900 rounded-2xl p-6 border border-red-500/30">
+                <h3 className="text-lg font-bold text-red-400 mb-4 flex items-center">
                   <span className="mr-2">🚀</span>Priority Improvements
                 </h3>
                 <div className="space-y-3">
                   {parsedData.improvements.slice(0, 4).map((improvement, index) => (
                     <div key={index} className="flex items-start space-x-3">
-                      <span className="w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">
+                      <span className="w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">
                         {index + 1}
                       </span>
-                      <span className="text-orange-700 dark:text-orange-300 text-sm font-medium">{improvement}</span>
+                      <span className="text-red-300 text-sm font-medium">{cleanMarkdown(improvement)}</span>
                     </div>
                   ))}
                 </div>
@@ -466,16 +514,14 @@ export function EnhancedAnalysisDashboard({ analysis, className }: EnhancedAnaly
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.1 }}
-                className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700"
+                className="bg-zinc-900/80 rounded-2xl p-6 shadow-lg border border-zinc-800"
               >
                 <div className="flex items-center gap-4 mb-4">
                   <span className="text-2xl">{section.icon}</span>
-                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">{section.title}</h3>
+                  <h3 className="text-xl font-bold text-white">{cleanMarkdown(section.title)}</h3>
                 </div>
-                <div className="prose dark:prose-invert max-w-none">
-                  <pre className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300 font-sans">
-                    {section.content}
-                  </pre>
+                <div className="text-sm text-zinc-300 space-y-1">
+                  {formatContent(section.content)}
                 </div>
               </motion.div>
             ))}
@@ -488,17 +534,17 @@ export function EnhancedAnalysisDashboard({ analysis, className }: EnhancedAnaly
             {parsedData.actionItems.length > 0 ? (
               <div className="grid gap-6">
                 {/* High Priority */}
-                <div className="bg-red-50 dark:bg-red-950/20 rounded-2xl p-6 border border-red-200 dark:border-red-800">
-                  <h3 className="text-lg font-bold text-red-800 dark:text-red-300 mb-4 flex items-center">
+                <div className="bg-red-950/30 rounded-2xl p-6 border border-red-500/20">
+                  <h3 className="text-lg font-bold text-red-400 mb-4 flex items-center">
                     <span className="mr-2">🚨</span>High Priority (Immediate Action)
                   </h3>
                   <div className="space-y-3">
                     {parsedData.actionItems.filter(item => item.priority === 'high').map((item, index) => (
-                      <div key={index} className="flex items-start space-x-3 p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                        <input type="checkbox" className="mt-1 w-4 h-4 text-red-600" />
+                      <div key={index} className="flex items-start space-x-3 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700/50">
+                        <input type="checkbox" className="mt-1 w-4 h-4 accent-red-500" />
                         <div className="flex-1">
-                          <p className="text-red-700 dark:text-red-300 font-medium">{item.item}</p>
-                          <p className="text-red-600 dark:text-red-400 text-xs mt-1">Timeline: {item.timeline}</p>
+                          <p className="text-red-300 font-medium">{cleanMarkdown(item.item)}</p>
+                          <p className="text-red-400/60 text-xs mt-1">Timeline: {item.timeline}</p>
                         </div>
                       </div>
                     ))}
@@ -506,17 +552,17 @@ export function EnhancedAnalysisDashboard({ analysis, className }: EnhancedAnaly
                 </div>
 
                 {/* Medium Priority */}
-                <div className="bg-yellow-50 dark:bg-yellow-950/20 rounded-2xl p-6 border border-yellow-200 dark:border-yellow-800">
-                  <h3 className="text-lg font-bold text-yellow-800 dark:text-yellow-300 mb-4 flex items-center">
+                <div className="bg-yellow-950/30 rounded-2xl p-6 border border-yellow-500/20">
+                  <h3 className="text-lg font-bold text-yellow-400 mb-4 flex items-center">
                     <span className="mr-2">⚠️</span>Medium Priority (Short-term)
                   </h3>
                   <div className="space-y-3">
                     {parsedData.actionItems.filter(item => item.priority === 'medium').map((item, index) => (
-                      <div key={index} className="flex items-start space-x-3 p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                        <input type="checkbox" className="mt-1 w-4 h-4 text-yellow-600" />
+                      <div key={index} className="flex items-start space-x-3 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700/50">
+                        <input type="checkbox" className="mt-1 w-4 h-4 accent-yellow-500" />
                         <div className="flex-1">
-                          <p className="text-yellow-700 dark:text-yellow-300 font-medium">{item.item}</p>
-                          <p className="text-yellow-600 dark:text-yellow-400 text-xs mt-1">Timeline: {item.timeline}</p>
+                          <p className="text-yellow-300 font-medium">{cleanMarkdown(item.item)}</p>
+                          <p className="text-yellow-400/60 text-xs mt-1">Timeline: {item.timeline}</p>
                         </div>
                       </div>
                     ))}
@@ -524,17 +570,17 @@ export function EnhancedAnalysisDashboard({ analysis, className }: EnhancedAnaly
                 </div>
 
                 {/* Low Priority */}
-                <div className="bg-blue-50 dark:bg-blue-950/20 rounded-2xl p-6 border border-blue-200 dark:border-blue-800">
-                  <h3 className="text-lg font-bold text-blue-800 dark:text-blue-300 mb-4 flex items-center">
+                <div className="bg-blue-950/30 rounded-2xl p-6 border border-blue-500/20">
+                  <h3 className="text-lg font-bold text-blue-400 mb-4 flex items-center">
                     <span className="mr-2">💡</span>Long-term Development
                   </h3>
                   <div className="space-y-3">
                     {parsedData.actionItems.filter(item => item.priority === 'low').map((item, index) => (
-                      <div key={index} className="flex items-start space-x-3 p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                        <input type="checkbox" className="mt-1 w-4 h-4 text-blue-600" />
+                      <div key={index} className="flex items-start space-x-3 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700/50">
+                        <input type="checkbox" className="mt-1 w-4 h-4 accent-blue-500" />
                         <div className="flex-1">
-                          <p className="text-blue-700 dark:text-blue-300 font-medium">{item.item}</p>
-                          <p className="text-blue-600 dark:text-blue-400 text-xs mt-1">Timeline: {item.timeline}</p>
+                          <p className="text-blue-300 font-medium">{cleanMarkdown(item.item)}</p>
+                          <p className="text-blue-400/60 text-xs mt-1">Timeline: {item.timeline}</p>
                         </div>
                       </div>
                     ))}
@@ -544,27 +590,27 @@ export function EnhancedAnalysisDashboard({ analysis, className }: EnhancedAnaly
             ) : (
               // Default action plan when not parsed
               <div className="grid gap-6">
-                <div className="bg-red-50 dark:bg-red-950/20 rounded-2xl p-6 border border-red-200 dark:border-red-800">
-                  <h3 className="text-lg font-bold text-red-800 dark:text-red-300 mb-4 flex items-center">
+                <div className="bg-red-950/30 rounded-2xl p-6 border border-red-500/20">
+                  <h3 className="text-lg font-bold text-red-400 mb-4 flex items-center">
                     <span className="mr-2">🚨</span>Immediate Actions (1-2 Days)
                   </h3>
                   <div className="space-y-3">
                     {parsedData.skillsScore < 70 && (
-                      <div className="flex items-start space-x-3 p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                        <input type="checkbox" className="mt-1 w-4 h-4 text-red-600" />
-                        <p className="text-red-700 dark:text-red-300 font-medium">Add missing technical skills from job requirements</p>
+                      <div className="flex items-start space-x-3 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700/50">
+                        <input type="checkbox" className="mt-1 w-4 h-4 accent-red-500" />
+                        <p className="text-red-300 font-medium">Add missing technical skills from job requirements</p>
                       </div>
                     )}
                     {parsedData.keywordMatchRate < 60 && (
-                      <div className="flex items-start space-x-3 p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                        <input type="checkbox" className="mt-1 w-4 h-4 text-red-600" />
-                        <p className="text-red-700 dark:text-red-300 font-medium">Incorporate job-specific keywords throughout resume</p>
+                      <div className="flex items-start space-x-3 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700/50">
+                        <input type="checkbox" className="mt-1 w-4 h-4 accent-red-500" />
+                        <p className="text-red-300 font-medium">Incorporate job-specific keywords throughout resume</p>
                       </div>
                     )}
                     {parsedData.atsScore < 70 && (
-                      <div className="flex items-start space-x-3 p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                        <input type="checkbox" className="mt-1 w-4 h-4 text-red-600" />
-                        <p className="text-red-700 dark:text-red-300 font-medium">Optimize resume format for ATS compatibility</p>
+                      <div className="flex items-start space-x-3 p-3 bg-zinc-800/50 rounded-lg border border-zinc-700/50">
+                        <input type="checkbox" className="mt-1 w-4 h-4 accent-red-500" />
+                        <p className="text-red-300 font-medium">Optimize resume format for ATS compatibility</p>
                       </div>
                     )}
                   </div>
@@ -573,12 +619,12 @@ export function EnhancedAnalysisDashboard({ analysis, className }: EnhancedAnaly
             )}
 
             {/* Progress Tracking */}
-            <div className="bg-gradient-to-br from-purple-50 to-indigo-100 dark:from-purple-950/30 dark:to-indigo-950/30 rounded-2xl p-6 border border-purple-200 dark:border-purple-800">
-              <h3 className="text-lg font-bold text-purple-800 dark:text-purple-300 mb-6 flex items-center">
+            <div className="bg-zinc-900 rounded-2xl p-6 border border-zinc-800">
+              <h3 className="text-lg font-bold text-white mb-6 flex items-center">
                 <span className="mr-2">📊</span>Progress Tracking
               </h3>
               <div className="flex justify-center space-x-8">
-                <ProgressRing percentage={parsedData.overallScore} label="Overall Score" color="#8B5CF6" />
+                <ProgressRing percentage={parsedData.overallScore} label="Overall Score" color="#dc2626" />
                 <ProgressRing percentage={parsedData.skillsScore} label="Skills Gap" color="#10B981" />
                 <ProgressRing percentage={parsedData.atsScore} label="ATS Ready" color="#F59E0B" />
               </div>

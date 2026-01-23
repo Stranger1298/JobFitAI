@@ -1,28 +1,33 @@
-# AI Resume Analyzer
+# JobFit AI 🎯
 
-A Next.js application that uses Google's Gemini AI to analyze resumes against job descriptions and provide detailed feedback and improvement suggestions.
+A powerful Next.js application that uses Google's Gemini AI to analyze resumes against job descriptions and provide detailed feedback and improvement suggestions. Features a sleek **black and red dark theme** with stunning animations.
 
-## Features
+![JobFit AI](https://img.shields.io/badge/AI-Powered-red?style=for-the-badge&logo=google&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=for-the-badge&logo=typescript&logoColor=white)
 
-- **File Upload**: Support for PDF, DOC, and DOCX resume formats
-- **AI Analysis**: Powered by Google Gemini AI for intelligent resume analysis
-- **Job Matching**: Compare resumes against specific job descriptions
-- **Detailed Feedback**: Get comprehensive insights including:
-  - Match score percentage
-  - Key strengths
-  - Areas for improvement
-  - Missing keywords/skills
-  - ATS optimization suggestions
-- **Beautiful UI**: Built with Aceternity UI components and Tailwind CSS
-- **Responsive Design**: Works seamlessly on desktop and mobile devices
+## ✨ Features
 
-## Tech Stack
+- **🤖 AI-Powered Analysis**: Powered by Google Gemini AI for intelligent resume evaluation
+- **📊 ATS Optimization**: Get ATS compatibility scores and optimization tips
+- **🎯 Skills Matching**: See how your skills align with job requirements
+- **📈 Visual Analytics**: Beautiful charts and graphs for data visualization
+- **🔑 Keyword Analysis**: Identify missing and matching keywords
+- **💡 Smart Suggestions**: Personalized interview tips and improvement recommendations
+- **📁 Multi-Format Support**: Upload PDF, DOC, and DOCX resume formats
+- **🌙 Dark Theme**: Sleek black and red design with smooth animations
+- **📱 Responsive**: Works seamlessly on desktop and mobile devices
+- **📊 Vercel Analytics**: Built-in analytics for tracking usage
 
-- **Frontend**: Next.js 15, React, TypeScript
+## 🛠️ Tech Stack
+
+- **Frontend**: Next.js 15, React 19, TypeScript
 - **Styling**: Tailwind CSS, Framer Motion
-- **AI**: Google Generative AI (Gemini)
+- **AI**: Google Generative AI (Gemini 1.5)
+- **Charts**: Chart.js, react-chartjs-2
 - **File Processing**: PDF-Parse, Mammoth.js
 - **File Upload**: React Dropzone
+- **Analytics**: Vercel Analytics
 
 ## Getting Started
 

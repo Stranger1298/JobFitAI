@@ -18,17 +18,18 @@ export function Textarea({ label, error, className, ...props }: TextareaProps) {
       className="w-full"
     >
       {label && (
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <label className="block text-sm font-medium text-zinc-300 mb-2">
           {label}
         </label>
       )}
       <textarea
         className={cn(
-          "w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm",
-          "focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
-          "dark:bg-gray-800 dark:text-gray-100",
-          "placeholder-gray-400 dark:placeholder-gray-500",
-          "transition-colors duration-200",
+          "w-full px-4 py-3 border border-zinc-700 rounded-xl shadow-sm",
+          "bg-zinc-900/80 text-white",
+          "focus:ring-2 focus:ring-red-500/50 focus:border-red-500/50",
+          "placeholder-zinc-500",
+          "transition-all duration-300",
+          "hover:border-zinc-600",
           error && "border-red-500 focus:ring-red-500 focus:border-red-500",
           className
         )}
@@ -38,7 +39,7 @@ export function Textarea({ label, error, className, ...props }: TextareaProps) {
         <motion.p
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mt-1 text-sm text-red-600 dark:text-red-400"
+          className="mt-2 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-1"
         >
           {error}
         </motion.p>

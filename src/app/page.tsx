@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { FileUpload } from '@/components/ui/file-upload';
 import { JobDescriptionUpload } from '@/components/ui/job-description-upload';
 import { Textarea } from '@/components/ui/textarea';
@@ -10,6 +10,41 @@ import { CardHeader, CardContent, CardTitle, GlowCard } from '@/components/ui/ca
 import { AnimatedBackground } from '@/components/ui/animated-background';
 import { EnhancedAnalysisDashboard } from '@/components/enhanced-analysis-dashboard';
 import { AnalysisLoading } from '@/components/ui/loading';
+
+// Sample data for demo
+const SAMPLE_JOB_DESCRIPTION = `Senior Frontend Developer
+
+We are looking for an experienced Frontend Developer to join our team.
+
+Requirements:
+- 5+ years of experience with React.js and TypeScript
+- Strong understanding of modern CSS (Tailwind, styled-components)
+- Experience with state management (Redux, Zustand, or similar)
+- Familiarity with Next.js and server-side rendering
+- Knowledge of testing frameworks (Jest, React Testing Library)
+- Experience with Git and CI/CD pipelines
+- Strong problem-solving and communication skills
+
+Nice to have:
+- Experience with GraphQL
+- Knowledge of accessibility standards (WCAG)
+- Background in design systems
+
+Benefits:
+- Competitive salary
+- Remote work options
+- Health insurance
+- Learning budget`;
+
+// History item type
+interface AnalysisHistoryItem {
+  id: string;
+  timestamp: Date;
+  resumeName: string;
+  jobTitle: string;
+  overallScore: number;
+  analysis: string;
+}
 
 export default function Home() {
   const [selectedResumeFile, setSelectedResumeFile] = useState<File | null>(null);
@@ -20,9 +55,38 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [abortController, setAbortController] = useState<AbortController | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [history, setHistory] = useState<AnalysisHistoryItem[]>([]);
+  const [copySuccess, setCopySuccess] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   
   // Use a ref to track if a request is in progress to prevent duplicates
   const requestInProgress = useRef(false);
+  // Ref to store handleAnalyze function for keyboard shortcuts
+  const handleAnalyzeRef = useRef<() => void>(() => {});
+
+  // Load history from localStorage on mount
+  useEffect(() => {
+    const savedHistory = localStorage.getItem('jobfit-history');
+    if (savedHistory) {
+      try {
+        const parsed = JSON.parse(savedHistory);
+        setHistory(parsed.map((item: AnalysisHistoryItem) => ({
+          ...item,
+          timestamp: new Date(item.timestamp)
+        })));
+      } catch (e) {
+        console.error('Failed to parse history:', e);
+      }
+    }
+  }, []);
+
+  // Save history to localStorage when it changes
+  useEffect(() => {
+    if (history.length > 0) {
+      localStorage.setItem('jobfit-history', JSON.stringify(history));
+    }
+  }, [history]);
 
   // Cleanup effect to abort any ongoing requests when component unmounts
   useEffect(() => {
@@ -32,6 +96,32 @@ export default function Home() {
       }
     };
   }, [abortController]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + Enter to analyze
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        if (selectedResumeFile && (jobDescriptionText || selectedJDFile) && !loading) {
+          e.preventDefault();
+          handleAnalyzeRef.current();
+        }
+      }
+      // Escape to close modals
+      if (e.key === 'Escape') {
+        setShowHistory(false);
+        setShowShareModal(false);
+      }
+      // Ctrl/Cmd + H to toggle history
+      if ((e.ctrlKey || e.metaKey) && e.key === 'h') {
+        e.preventDefault();
+        setShowHistory(prev => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedResumeFile, jobDescriptionText, selectedJDFile, loading]);
 
   const handleResumeFileSelect = (file: File) => {
     setSelectedResumeFile(file);
@@ -46,6 +136,71 @@ export default function Home() {
   const handleJDFileClear = () => {
     setSelectedJDFile(null);
   };
+
+  // Load sample data for demo
+  const loadSampleData = useCallback(() => {
+    setJobDescriptionText(SAMPLE_JOB_DESCRIPTION);
+    setInputMode('text');
+    setError(null);
+  }, []);
+
+  // Copy analysis to clipboard
+  const copyToClipboard = useCallback(async () => {
+    if (!analysis) return;
+    try {
+      await navigator.clipboard.writeText(analysis);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  }, [analysis]);
+
+  // Export analysis as text file
+  const exportAnalysis = useCallback(() => {
+    if (!analysis) return;
+    const blob = new Blob([analysis], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `resume-analysis-${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [analysis]);
+
+  // Save to history
+  const saveToHistory = useCallback((analysisText: string, resumeName: string) => {
+    const scoreMatch = analysisText.match(/(?:Overall.*Score|Match.*Score):?\s*[^\d]*(\d+(?:\.\d+)?)[%\/]?/i);
+    const score = scoreMatch ? parseInt(scoreMatch[1]) : 0;
+    
+    const jobTitleMatch = jobDescriptionText.match(/^([^\n]+)/i);
+    const jobTitle = jobTitleMatch ? jobTitleMatch[1].trim().substring(0, 50) : 'Job Analysis';
+
+    const newItem: AnalysisHistoryItem = {
+      id: Date.now().toString(),
+      timestamp: new Date(),
+      resumeName: resumeName,
+      jobTitle: jobTitle,
+      overallScore: score,
+      analysis: analysisText
+    };
+
+    setHistory(prev => [newItem, ...prev].slice(0, 10)); // Keep last 10
+  }, [jobDescriptionText]);
+
+  // Load from history
+  const loadFromHistory = useCallback((item: AnalysisHistoryItem) => {
+    setAnalysis(item.analysis);
+    setShowHistory(false);
+  }, []);
+
+  // Clear history
+  const clearHistory = useCallback(() => {
+    setHistory([]);
+    localStorage.removeItem('jobfit-history');
+  }, []);
 
   const handleAnalyze = async () => {
     if (!selectedResumeFile) {
@@ -132,6 +287,10 @@ export default function Home() {
       }
 
       setAnalysis(data.analysis);
+      // Save to history
+      if (selectedResumeFile) {
+        saveToHistory(data.analysis, selectedResumeFile.name);
+      }
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
         // Request was aborted, don't show error
@@ -144,6 +303,9 @@ export default function Home() {
       requestInProgress.current = false;
     }
   };
+
+  // Update ref for keyboard shortcuts
+  handleAnalyzeRef.current = handleAnalyze;
 
   const handleReset = () => {
     // Cancel any ongoing request
@@ -166,8 +328,143 @@ export default function Home() {
   return (
     <div className="min-h-screen relative overflow-hidden">
       <AnimatedBackground />
-      <div className="relative z-10 container mx-auto px-4 py-8">
-        {/* Header */}
+      
+      {/* Fixed Header */}
+      <header className="sticky top-0 z-50 bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center">
+                <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none">
+                  <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <span className="text-xl font-bold text-white">JobFit <span className="text-red-500">AI</span></span>
+            </div>
+            <div className="flex items-center gap-3">
+              {/* History Button */}
+              <button
+                onClick={() => setShowHistory(!showHistory)}
+                className="relative flex items-center gap-2 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="hidden sm:inline">History</span>
+                {history.length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white text-xs rounded-full flex items-center justify-center">
+                    {history.length}
+                  </span>
+                )}
+              </button>
+              <span className="text-sm text-zinc-500 hidden md:block">AI-Powered Resume Analysis</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* History Panel */}
+      <AnimatePresence>
+        {showHistory && (
+          <motion.div
+            initial={{ opacity: 0, x: 300 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 300 }}
+            className="fixed right-0 top-0 h-full w-80 bg-zinc-900 border-l border-zinc-800 z-50 shadow-2xl overflow-y-auto"
+          >
+            <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-white">Analysis History</h3>
+              <button onClick={() => setShowHistory(false)} className="text-zinc-400 hover:text-white">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4 space-y-3">
+              {history.length === 0 ? (
+                <p className="text-zinc-500 text-sm text-center py-8">No analysis history yet</p>
+              ) : (
+                <>
+                  {history.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => loadFromHistory(item)}
+                      className="w-full text-left p-3 bg-zinc-800 rounded-lg border border-zinc-700 hover:border-red-500/50 transition-colors"
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-medium text-white truncate">{item.resumeName}</span>
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded ${
+                          item.overallScore >= 80 ? 'bg-green-500/20 text-green-400' :
+                          item.overallScore >= 60 ? 'bg-yellow-500/20 text-yellow-400' :
+                          'bg-red-500/20 text-red-400'
+                        }`}>
+                          {item.overallScore}%
+                        </span>
+                      </div>
+                      <p className="text-xs text-zinc-500 truncate">{item.jobTitle}</p>
+                      <p className="text-xs text-zinc-600 mt-1">
+                        {new Date(item.timestamp).toLocaleDateString()}
+                      </p>
+                    </button>
+                  ))}
+                  <button
+                    onClick={clearHistory}
+                    className="w-full text-center text-xs text-red-400 hover:text-red-300 py-2"
+                  >
+                    Clear History
+                  </button>
+                </>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Share Modal */}
+      <AnimatePresence>
+        {showShareModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowShareModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-md w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-xl font-bold text-white mb-4">Share Analysis</h3>
+              <p className="text-zinc-400 text-sm mb-4">
+                Your analysis has been copied! You can share it via email or messaging apps.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    copyToClipboard();
+                    setShowShareModal(false);
+                  }}
+                  className="flex-1 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+                >
+                  Copy to Clipboard
+                </button>
+                <button
+                  onClick={() => setShowShareModal(false)}
+                  className="px-4 py-2 bg-zinc-800 text-zinc-300 rounded-lg hover:bg-zinc-700 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="relative z-10 container mx-auto px-4 py-12">
+        {/* Hero Section */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -175,23 +472,59 @@ export default function Home() {
           className="text-center mb-12"
         >
           <motion.h1 
-            className="text-4xl md:text-6xl font-bold mb-6"
+            className="text-3xl md:text-5xl font-bold mb-4 text-white"
             initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
-            <span className="bg-gradient-to-r from-slate-700 via-blue-600 to-slate-700 bg-clip-text text-transparent">
-              AI Resume Analyzer
-            </span>
+            Analyze Your Resume with <span className="text-red-500">AI</span>
           </motion.h1>
           <motion.p 
-            className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed"
+            className="text-base text-zinc-400 max-w-xl mx-auto leading-relaxed"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.3 }}
           >
-            Upload your resume and job description to get AI-powered insights and improvement suggestions
+            Upload your resume and job description to get instant AI-powered insights.
           </motion.p>
+
+          {/* Feature badges */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.5 }}
+            className="flex flex-wrap justify-center gap-3 mt-6"
+          >
+            {[
+              { icon: "🎯", label: "ATS Optimization" },
+              { icon: "📊", label: "Skills Analysis" },
+              { icon: "💡", label: "Smart Suggestions" },
+              { icon: "⚡", label: "Instant Results" }
+            ].map((feature, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.6 + index * 0.1 }}
+                className="flex items-center gap-2 px-4 py-2 bg-zinc-900/80 border border-zinc-800 rounded-full text-sm text-zinc-300"
+              >
+                <span>{feature.icon}</span>
+                <span>{feature.label}</span>
+              </motion.div>
+            ))}
+          </motion.div>
+
+          {/* Quick Tips */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.7 }}
+            className="mt-6 text-center"
+          >
+            <p className="text-xs text-zinc-500">
+              💡 <span className="text-zinc-400">Pro tip:</span> Use the exact job posting for best results. Include all requirements and qualifications.
+            </p>
+          </motion.div>
         </motion.div>
 
         {!loading && !analysis && (
@@ -199,19 +532,17 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="max-w-6xl mx-auto"
+            className="max-w-4xl mx-auto"
           >
-            <div className="grid lg:grid-cols-2 gap-8 mb-8">
+            <div className="grid lg:grid-cols-2 gap-6 mb-8">
               {/* Resume Upload Section */}
-              <GlowCard glowColor="blue" className="p-8">
-                <CardHeader className="p-0 pb-6">
+              <GlowCard className="p-6">
+                <CardHeader className="p-0 pb-4">
                   <CardTitle 
                     icon={
-                      <div className="p-2 bg-blue-500/10 rounded-lg">
-                        <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                      </div>
+                      <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
                     }
                     className="text-white"
                   >
@@ -224,16 +555,14 @@ export default function Home() {
                     <motion.div
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      className="mt-4 p-4 bg-green-500/10 border border-green-500/20 rounded-xl backdrop-blur-sm"
+                      className="mt-3 p-3 bg-green-500/10 border border-green-500/20 rounded-lg"
                     >
-                      <div className="flex items-center space-x-3">
-                        <div className="p-1 bg-green-500/20 rounded-full">
-                          <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                          </svg>
-                        </div>
-                        <span className="text-sm font-medium text-green-300">
-                          {selectedResumeFile.name} uploaded successfully
+                      <div className="flex items-center space-x-2">
+                        <svg className="w-4 h-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span className="text-sm text-green-400 truncate">
+                          {selectedResumeFile.name}
                         </span>
                       </div>
                     </motion.div>
@@ -241,54 +570,71 @@ export default function Home() {
                 </CardContent>
               </GlowCard>
 
-              <GlowCard glowColor="purple" className="p-8">
-                <CardHeader className="p-0 pb-6">
+              <GlowCard className="p-6">
+                <CardHeader className="p-0 pb-4">
                   <CardTitle 
                     icon={
-                      <div className="p-2 bg-purple-500/10 rounded-lg">
-                        <svg className="w-6 h-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2h8z" />
-                        </svg>
-                      </div>
+                      <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2h8z" />
+                      </svg>
                     }
                     className="text-white"
                   >
                     Job Description
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-0 space-y-6">
+                <CardContent className="p-0 space-y-4">
                   {/* Input Mode Toggle */}
-                  <div className="flex gap-2 p-1 bg-white/5 rounded-lg backdrop-blur-sm">
+                  <div className="flex p-1 bg-zinc-800 rounded-lg border border-zinc-700">
                     <button
                       onClick={() => setInputMode('text')}
-                      className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                      className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
                         inputMode === 'text'
-                          ? 'bg-purple-500 text-white shadow-lg'
-                          : 'text-gray-300 hover:text-white hover:bg-white/10'
+                          ? 'bg-red-600 text-white'
+                          : 'text-zinc-400 hover:text-white'
                       }`}
                     >
                       Type Text
                     </button>
                     <button
                       onClick={() => setInputMode('file')}
-                      className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+                      className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
                         inputMode === 'file'
-                          ? 'bg-purple-500 text-white shadow-lg'
-                          : 'text-gray-300 hover:text-white hover:bg-white/10'
+                          ? 'bg-red-600 text-white'
+                          : 'text-zinc-400 hover:text-white'
                       }`}
                     >
                       Upload File
                     </button>
                   </div>
 
+                  {/* Try Sample Button */}
+                  {inputMode === 'text' && !jobDescriptionText && (
+                    <button
+                      onClick={loadSampleData}
+                      className="w-full py-2 text-sm text-zinc-400 border border-dashed border-zinc-700 rounded-lg hover:border-red-500/50 hover:text-red-400 transition-colors flex items-center justify-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      Try with sample job description
+                    </button>
+                  )}
+
                   {inputMode === 'text' ? (
-                    <Textarea
-                      placeholder="Paste the job description here..."
-                      value={jobDescriptionText}
-                      onChange={(e) => setJobDescriptionText(e.target.value)}
-                      rows={12}
-                      className="min-h-[300px] bg-white/5 border-white/10 text-white placeholder-gray-400 backdrop-blur-sm"
-                    />
+                    <div className="relative">
+                      <Textarea
+                        placeholder="Paste the job description here..."
+                        value={jobDescriptionText}
+                        onChange={(e) => setJobDescriptionText(e.target.value)}
+                        rows={8}
+                        className="min-h-[200px] bg-zinc-900 border-zinc-700 text-white placeholder-zinc-500 focus:border-red-500 focus:ring-red-500/20"
+                      />
+                      <div className="flex justify-between mt-2 text-xs text-zinc-500">
+                        <span>{jobDescriptionText.trim().split(/\s+/).filter(Boolean).length} words</span>
+                        <span>{jobDescriptionText.length} characters</span>
+                      </div>
+                    </div>
                   ) : (
                     <JobDescriptionUpload
                       onFileSelect={handleJDFileSelect}
@@ -307,23 +653,15 @@ export default function Home() {
                 animate={{ opacity: 1, y: 0 }}
                 className="mb-8"
               >
-                <div className="relative rounded-2xl border-2 border-red-200/60 bg-gradient-to-br from-red-50/90 via-white/80 to-pink-50/70 dark:border-red-500/30 dark:from-red-950/40 dark:via-slate-900/60 dark:to-pink-950/40 shadow-lg shadow-red-500/10 backdrop-blur-sm p-6">
-                  {/* Top shine effect */}
-                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-red-300/40 to-transparent" />
-                  
-                  <div className="flex items-center space-x-4">
-                    <div className="flex-shrink-0 p-3 bg-red-100/80 dark:bg-red-900/30 rounded-xl">
-                      <svg className="w-5 h-5 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="rounded-xl border border-red-500/50 bg-red-950/20 p-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="flex-shrink-0 p-2 bg-red-600 rounded-lg">
+                      <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <span className="text-red-700 dark:text-red-300 font-semibold text-lg">{error}</span>
-                    </div>
+                    <span className="text-red-400 font-medium">{error}</span>
                   </div>
-                  
-                  {/* Bottom accent line */}
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-red-400/30 to-transparent" />
                 </div>
               </motion.div>
             )}
@@ -343,7 +681,7 @@ export default function Home() {
                   (inputMode === 'text' && !jobDescriptionText.trim()) ||
                   (inputMode === 'file' && !selectedJDFile)
                 }
-                variant="gradient"
+                variant="glow"
                 size="xl"
                 icon={
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -368,6 +706,108 @@ export default function Home() {
                 </Button>
               )}
             </motion.div>
+
+            {/* Keyboard Shortcut Hint */}
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.8 }}
+              className="text-center text-xs text-zinc-600 mt-4"
+            >
+              Press <kbd className="px-1.5 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-zinc-400 font-mono">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-zinc-400 font-mono">Enter</kbd> to analyze • <kbd className="px-1.5 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-zinc-400 font-mono">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-zinc-400 font-mono">H</kbd> for history
+            </motion.p>
+
+            {/* Features Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.8 }}
+              className="mt-20"
+            >
+              <div className="text-center mb-12">
+                <h2 className="text-3xl font-bold text-white mb-4">
+                  Why Use <span className="text-red-500">JobFit AI</span>?
+                </h2>
+                <p className="text-zinc-400 max-w-2xl mx-auto">
+                  Our AI-powered platform helps you optimize your resume for any job application
+                </p>
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-6">
+                {[
+                  {
+                    icon: "📈",
+                    title: "ATS Score Analysis",
+                    description: "Get detailed insights on how well your resume performs against Applicant Tracking Systems used by 90% of companies."
+                  },
+                  {
+                    icon: "🎯",
+                    title: "Keyword Matching",
+                    description: "Identify missing keywords and skills that recruiters are looking for in your target role."
+                  },
+                  {
+                    icon: "💡",
+                    title: "Smart Suggestions",
+                    description: "Receive personalized recommendations to improve your resume's impact and relevance."
+                  },
+                  {
+                    icon: "⚡",
+                    title: "Instant Analysis",
+                    description: "Get comprehensive results in seconds, not hours. Our AI processes your documents quickly."
+                  },
+                  {
+                    icon: "📊",
+                    title: "Skills Gap Analysis",
+                    description: "Understand the gap between your current skills and what the job requires."
+                  },
+                  {
+                    icon: "🏆",
+                    title: "Competitive Edge",
+                    description: "Stand out from other candidates with a perfectly optimized resume tailored to each job."
+                  }
+                ].map((feature, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.9 + index * 0.1 }}
+                    className="feature-card rounded-2xl p-6 backdrop-blur-sm"
+                  >
+                    <div className="text-4xl mb-4">{feature.icon}</div>
+                    <h3 className="text-xl font-semibold text-white mb-2">{feature.title}</h3>
+                    <p className="text-zinc-400 text-sm leading-relaxed">{feature.description}</p>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* Stats Section */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.2 }}
+              className="mt-20 py-12 border-t border-b border-zinc-800"
+            >
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+                {[
+                  { value: "10K+", label: "Resumes Analyzed" },
+                  { value: "95%", label: "User Satisfaction" },
+                  { value: "3x", label: "More Interviews" },
+                  { value: "24/7", label: "AI Availability" }
+                ].map((stat, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 1.3 + index * 0.1 }}
+                    className="stat-animate"
+                  >
+                    <div className="text-3xl md:text-4xl font-bold text-red-500 mb-2">{stat.value}</div>
+                    <div className="text-zinc-400 text-sm">{stat.label}</div>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
           </motion.div>
         )}
 
@@ -376,8 +816,150 @@ export default function Home() {
 
         {/* Results */}
         {analysis && !loading && (
-          <EnhancedAnalysisDashboard analysis={analysis} />
+          <div className="space-y-8">
+            {/* Action Bar */}
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-wrap justify-center gap-3"
+            >
+              <button
+                onClick={copyToClipboard}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  copySuccess
+                    ? 'bg-green-600 text-white'
+                    : 'bg-zinc-800 text-zinc-300 border border-zinc-700 hover:border-red-500/50 hover:text-white'
+                }`}
+              >
+                {copySuccess ? (
+                  <>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    Copy
+                  </>
+                )}
+              </button>
+              <button
+                onClick={exportAnalysis}
+                className="flex items-center gap-2 px-4 py-2 bg-zinc-800 text-zinc-300 border border-zinc-700 rounded-lg text-sm font-medium hover:border-red-500/50 hover:text-white transition-all"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Download
+              </button>
+              <button
+                onClick={() => setShowShareModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-zinc-800 text-zinc-300 border border-zinc-700 rounded-lg text-sm font-medium hover:border-red-500/50 hover:text-white transition-all"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+                Share
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="flex items-center gap-2 px-4 py-2 bg-zinc-800 text-zinc-300 border border-zinc-700 rounded-lg text-sm font-medium hover:border-red-500/50 hover:text-white transition-all"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                Print
+              </button>
+            </motion.div>
+
+            <EnhancedAnalysisDashboard analysis={analysis} />
+            
+            {/* Back to Home Button */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="flex justify-center"
+            >
+              <Button
+                onClick={handleReset}
+                variant="outline"
+                size="lg"
+                icon={
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                }
+              >
+                Analyze Another Resume
+              </Button>
+            </motion.div>
+          </div>
         )}
+
+        {/* Footer */}
+        <motion.footer
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5 }}
+          className="mt-20 pb-8 border-t border-zinc-800 pt-12"
+        >
+          <div className="max-w-6xl mx-auto">
+            <div className="grid md:grid-cols-4 gap-8 mb-12">
+              {/* Brand */}
+              <div className="md:col-span-2">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-lg bg-red-600 flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                  <span className="text-xl font-bold text-white">JobFit <span className="text-red-500">AI</span></span>
+                </div>
+                <p className="text-zinc-500 text-sm leading-relaxed max-w-sm">
+                  AI-powered resume analysis tool that helps you optimize your resume for any job application. Get instant feedback and actionable insights.
+                </p>
+              </div>
+
+              {/* Features */}
+              <div>
+                <h4 className="text-white font-semibold mb-4">Features</h4>
+                <ul className="space-y-2 text-sm text-zinc-500">
+                  <li>ATS Optimization</li>
+                  <li>Skills Analysis</li>
+                  <li>Keyword Matching</li>
+                  <li>Interview Tips</li>
+                </ul>
+              </div>
+
+              {/* Resources */}
+              <div>
+                <h4 className="text-white font-semibold mb-4">Resources</h4>
+                <ul className="space-y-2 text-sm text-zinc-500">
+                  <li>Resume Templates</li>
+                  <li>Career Blog</li>
+                  <li>FAQ</li>
+                  <li>Support</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Bottom bar */}
+            <div className="border-t border-zinc-800 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+              <p className="text-zinc-600 text-sm">
+                © 2026 JobFit AI. All rights reserved.
+              </p>
+              <div className="flex items-center gap-6">
+                <span className="text-zinc-600 text-sm hover:text-zinc-400 cursor-pointer transition-colors">Privacy Policy</span>
+                <span className="text-zinc-600 text-sm hover:text-zinc-400 cursor-pointer transition-colors">Terms of Service</span>
+              </div>
+            </div>
+          </div>
+        </motion.footer>
       </div>
     </div>
   );

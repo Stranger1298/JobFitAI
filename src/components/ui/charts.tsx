@@ -38,7 +38,7 @@ interface ScoreChartProps {
   size?: 'sm' | 'md' | 'lg';
 }
 
-export function ScoreChart({ score, title, color = '#3B82F6', size = 'md' }: ScoreChartProps) {
+export function ScoreChart({ score, title, color = '#dc2626', size = 'md' }: ScoreChartProps) {
   const sizeClasses = {
     sm: 'w-24 h-24',
     md: 'w-32 h-32',
@@ -49,7 +49,7 @@ export function ScoreChart({ score, title, color = '#3B82F6', size = 'md' }: Sco
     datasets: [
       {
         data: [score, 100 - score],
-        backgroundColor: [color, '#E5E7EB'],
+        backgroundColor: [color, '#27272a'],
         borderWidth: 0,
         cutout: '70%',
       },
@@ -75,13 +75,13 @@ export function ScoreChart({ score, title, color = '#3B82F6', size = 'md' }: Sco
         <Doughnut data={data} options={options} />
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center">
-            <div className="text-lg font-bold text-gray-900 dark:text-gray-100">
+            <div className="text-lg font-bold text-white">
               {score}%
             </div>
           </div>
         </div>
       </div>
-      <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mt-2 text-center">
+      <p className="text-sm font-medium text-zinc-400 mt-2 text-center">
         {title}
       </p>
     </div>
@@ -99,13 +99,13 @@ export function SkillsRadarChart({ skills }: SkillsRadarProps) {
       {
         label: 'Skill Level',
         data: skills.map(s => s.score),
-        backgroundColor: 'rgba(59, 130, 246, 0.2)',
-        borderColor: 'rgba(59, 130, 246, 1)',
+        backgroundColor: 'rgba(220, 38, 38, 0.2)',
+        borderColor: 'rgba(220, 38, 38, 1)',
         borderWidth: 2,
-        pointBackgroundColor: 'rgba(59, 130, 246, 1)',
-        pointBorderColor: '#fff',
-        pointHoverBackgroundColor: '#fff',
-        pointHoverBorderColor: 'rgba(59, 130, 246, 1)',
+        pointBackgroundColor: 'rgba(220, 38, 38, 1)',
+        pointBorderColor: '#18181b',
+        pointHoverBackgroundColor: '#18181b',
+        pointHoverBorderColor: 'rgba(220, 38, 38, 1)',
       },
     ],
   };
@@ -121,6 +121,10 @@ export function SkillsRadarChart({ skills }: SkillsRadarProps) {
       r: {
         angleLines: {
           display: true,
+          color: 'rgba(255, 255, 255, 0.1)',
+        },
+        grid: {
+          color: 'rgba(255, 255, 255, 0.1)',
         },
         suggestedMin: 0,
         suggestedMax: 100,
@@ -129,8 +133,9 @@ export function SkillsRadarChart({ skills }: SkillsRadarProps) {
         },
         pointLabels: {
           font: {
-            size: 12,
+            size: 11,
           },
+          color: '#a1a1aa',
         },
       },
     },
@@ -154,8 +159,8 @@ export function ComparisonBarChart({ categories }: ComparisonBarProps) {
       {
         label: 'Current Score',
         data: categories.map(c => c.current),
-        backgroundColor: 'rgba(59, 130, 246, 0.8)',
-        borderColor: 'rgba(59, 130, 246, 1)',
+        backgroundColor: 'rgba(220, 38, 38, 0.8)',
+        borderColor: 'rgba(220, 38, 38, 1)',
         borderWidth: 1,
       },
       {
@@ -173,6 +178,9 @@ export function ComparisonBarChart({ categories }: ComparisonBarProps) {
     plugins: {
       legend: {
         position: 'top' as const,
+        labels: {
+          color: '#a1a1aa',
+        },
       },
       title: {
         display: false,
@@ -182,6 +190,20 @@ export function ComparisonBarChart({ categories }: ComparisonBarProps) {
       y: {
         beginAtZero: true,
         max: 100,
+        grid: {
+          color: 'rgba(255, 255, 255, 0.1)',
+        },
+        ticks: {
+          color: '#71717a',
+        },
+      },
+      x: {
+        grid: {
+          color: 'rgba(255, 255, 255, 0.05)',
+        },
+        ticks: {
+          color: '#a1a1aa',
+        },
       },
     },
   };
@@ -218,7 +240,7 @@ export function ProgressRing({ percentage, label, color, size = 120 }: ProgressR
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke="#E5E7EB"
+            stroke="#27272a"
             strokeWidth="8"
             fill="transparent"
           />
@@ -236,12 +258,12 @@ export function ProgressRing({ percentage, label, color, size = 120 }: ProgressR
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-xl font-bold text-gray-900 dark:text-gray-100">
+          <span className="text-xl font-bold text-white">
             {percentage}%
           </span>
         </div>
       </div>
-      <p className="mt-2 text-sm font-medium text-gray-700 dark:text-gray-300 text-center">
+      <p className="mt-2 text-sm font-medium text-zinc-400 text-center">
         {label}
       </p>
     </div>

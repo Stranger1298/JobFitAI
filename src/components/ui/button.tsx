@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 
 interface ButtonProps {
   children: React.ReactNode;
-  variant?: 'primary' | 'secondary' | 'outline' | 'gradient' | 'glow';
+  variant?: 'primary' | 'secondary' | 'outline' | 'gradient' | 'glow' | 'danger';
   size?: 'sm' | 'md' | 'lg' | 'xl';
   loading?: boolean;
   className?: string;
@@ -27,14 +27,15 @@ export function Button({
   type = 'button',
   icon,
 }: ButtonProps) {
-  const baseClasses = "inline-flex items-center justify-center font-medium rounded-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 transform active:scale-95 disabled:transform-none";
+  const baseClasses = "inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-black disabled:opacity-50 disabled:cursor-not-allowed";
   
   const variants = {
-    primary: "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl focus:ring-blue-500",
-    secondary: "bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white shadow-lg hover:shadow-xl focus:ring-gray-500",
-    outline: "border-2 border-gray-300 dark:border-gray-600 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-700 dark:text-gray-300 focus:ring-blue-500 hover:border-gray-400 dark:hover:border-gray-500",
-    gradient: "bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 hover:from-purple-700 hover:via-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl focus:ring-purple-500 relative overflow-hidden",
-    glow: "bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white shadow-lg hover:shadow-blue-500/25 focus:ring-blue-500 relative overflow-hidden",
+    primary: "bg-red-600 hover:bg-red-700 text-white focus:ring-red-500",
+    secondary: "bg-zinc-800 hover:bg-zinc-700 text-white focus:ring-zinc-500 border border-zinc-700",
+    outline: "border-2 border-zinc-700 bg-transparent hover:bg-zinc-800 text-white focus:ring-zinc-500",
+    gradient: "bg-red-600 hover:bg-red-700 text-white focus:ring-red-500",
+    glow: "bg-red-600 hover:bg-red-700 text-white focus:ring-red-500",
+    danger: "bg-red-700 hover:bg-red-800 text-white focus:ring-red-500",
   };
 
   const sizes = {
@@ -46,24 +47,19 @@ export function Button({
 
   return (
     <motion.button
-      whileHover={{ scale: disabled || loading ? 1 : 1.02 }}
-      whileTap={{ scale: disabled || loading ? 1 : 0.98 }}
+      whileHover={{ scale: disabled || loading ? 1 : 1.01 }}
+      whileTap={{ scale: disabled || loading ? 1 : 0.99 }}
       className={cn(
         baseClasses,
         variants[variant],
         sizes[size],
-        (disabled || loading) && "opacity-50 cursor-not-allowed hover:shadow-lg",
         className
       )}
       disabled={disabled || loading}
       onClick={onClick}
       type={type}
     >
-      {(variant === 'gradient' || variant === 'glow') && (
-        <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300" />
-      )}
-      
-      <div className="relative flex items-center gap-2">
+      <div className="flex items-center gap-2">
         {loading && (
           <motion.svg
             animate={{ rotate: 360 }}
