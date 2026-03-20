@@ -52,11 +52,11 @@ export default function Home() {
   const [latestJobDescription, setLatestJobDescription] = useState('');
   const [baselineScore, setBaselineScore] = useState<number | null>(null);
   const [improvementTests, setImprovementTests] = useState<ImprovementTestResult[]>([]);
-  
+
   // Use a ref to track if a request is in progress to prevent duplicates
   const requestInProgress = useRef(false);
   // Ref to store handleAnalyze function for keyboard shortcuts
-  const handleAnalyzeRef = useRef<() => void>(() => {});
+  const handleAnalyzeRef = useRef<() => void>(() => { });
 
   // Load history from localStorage on mount
   useEffect(() => {
@@ -269,7 +269,7 @@ export default function Home() {
   const saveToHistory = useCallback((analysisText: string, resumeName: string) => {
     const scoreMatch = analysisText.match(/(?:Overall.*Score|Match.*Score):?\s*[^\d]*(\d+(?:\.\d+)?)[%\/]?/i);
     const score = scoreMatch ? parseInt(scoreMatch[1]) : 0;
-    
+
     const jobTitleMatch = jobDescriptionText.match(/^([^\n]+)/i);
     const jobTitle = jobTitleMatch ? jobTitleMatch[1].trim().substring(0, 50) : 'Job Analysis';
 
@@ -373,7 +373,7 @@ export default function Home() {
       const formData = new FormData();
       formData.append('resume', selectedResumeFile);
       formData.append('analysisMode', 'free');
-      
+
       if (inputMode === 'text') {
         formData.append('jobDescription', jobDescriptionText);
       } else if (selectedJDFile) {
@@ -454,10 +454,10 @@ export default function Home() {
       abortController.abort();
       setAbortController(null);
     }
-    
+
     // Reset request flag
     requestInProgress.current = false;
-    
+
     setSelectedResumeFile(null);
     setSelectedJDFile(null);
     setJobDescriptionText('');
@@ -474,7 +474,7 @@ export default function Home() {
   return (
     <div className="min-h-screen relative overflow-hidden">
       <AnimatedBackground />
-      
+
       {/* Fixed Header */}
       <header className="sticky top-0 z-50 bg-zinc-950/90 backdrop-blur-md border-b border-zinc-800">
         <div className="container mx-auto px-4 py-4">
@@ -482,7 +482,7 @@ export default function Home() {
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center">
                 <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none">
-                  <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
               <span className="text-xl font-bold text-white">JobFit <span className="text-red-500">AI</span></span>
@@ -549,11 +549,10 @@ export default function Home() {
                     >
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-sm font-medium text-white truncate">{item.resumeName}</span>
-                        <span className={`text-xs font-bold px-2 py-0.5 rounded ${
-                          item.overallScore >= 80 ? 'bg-green-500/20 text-green-400' :
-                          item.overallScore >= 60 ? 'bg-yellow-500/20 text-yellow-400' :
-                          'bg-red-500/20 text-red-400'
-                        }`}>
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded ${item.overallScore >= 80 ? 'bg-green-500/20 text-green-400' :
+                            item.overallScore >= 60 ? 'bg-yellow-500/20 text-yellow-400' :
+                              'bg-red-500/20 text-red-400'
+                          }`}>
                           {item.overallScore}%
                         </span>
                       </div>
@@ -683,7 +682,7 @@ export default function Home() {
           transition={{ duration: 0.5 }}
           className="text-center mb-12"
         >
-          <motion.h1 
+          <motion.h1
             className="text-3xl md:text-5xl font-bold mb-4 text-white"
             initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -691,7 +690,7 @@ export default function Home() {
           >
             Analyze Your Resume with <span className="text-red-500">AI</span>
           </motion.h1>
-          <motion.p 
+          <motion.p
             className="text-base text-zinc-400 max-w-xl mx-auto leading-relaxed"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -750,7 +749,7 @@ export default function Home() {
               {/* Resume Upload Section */}
               <GlowCard className="p-6">
                 <CardHeader className="p-0 pb-4">
-                  <CardTitle 
+                  <CardTitle
                     icon={
                       <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -784,7 +783,7 @@ export default function Home() {
 
               <GlowCard className="p-6">
                 <CardHeader className="p-0 pb-4">
-                  <CardTitle 
+                  <CardTitle
                     icon={
                       <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2h8z" />
@@ -800,21 +799,19 @@ export default function Home() {
                   <div className="flex p-1 bg-zinc-800 rounded-lg border border-zinc-700">
                     <button
                       onClick={() => setInputMode('text')}
-                      className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                        inputMode === 'text'
+                      className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${inputMode === 'text'
                           ? 'bg-red-600 text-white'
                           : 'text-zinc-400 hover:text-white'
-                      }`}
+                        }`}
                     >
                       Type Text
                     </button>
                     <button
                       onClick={() => setInputMode('file')}
-                      className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
-                        inputMode === 'file'
+                      className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 ${inputMode === 'file'
                           ? 'bg-red-600 text-white'
                           : 'text-zinc-400 hover:text-white'
-                      }`}
+                        }`}
                     >
                       Upload File
                     </button>
@@ -916,7 +913,7 @@ export default function Home() {
                 onClick={handleAnalyze}
                 disabled={
                   loading ||
-                  !selectedResumeFile || 
+                  !selectedResumeFile ||
                   (inputMode === 'text' && !jobDescriptionText.trim()) ||
                   (inputMode === 'file' && !selectedJDFile)
                 }
@@ -1101,11 +1098,10 @@ export default function Home() {
             >
               <button
                 onClick={copyToClipboard}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  copySuccess
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${copySuccess
                     ? 'bg-green-600 text-white'
                     : 'bg-zinc-800 text-zinc-300 border border-zinc-700 hover:border-red-500/50 hover:text-white'
-                }`}
+                  }`}
               >
                 {copySuccess ? (
                   <>
@@ -1153,7 +1149,7 @@ export default function Home() {
             </motion.div>
 
             <EnhancedAnalysisDashboard analysis={analysis} resumeText={latestResumeText} />
-            
+
             {/* Back to Home Button */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}

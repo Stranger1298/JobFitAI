@@ -22,7 +22,7 @@ const formatContent = (content: string): React.ReactNode => {
   return lines.map((line, idx) => {
     const cleanedLine = cleanMarkdown(line);
     if (!cleanedLine) return null;
-    
+
     // Check if it's a list item
     if (cleanedLine.startsWith('- ')) {
       return (
@@ -32,7 +32,7 @@ const formatContent = (content: string): React.ReactNode => {
         </div>
       );
     }
-    
+
     // Check if it contains a colon (label: value format)
     const colonIndex = cleanedLine.indexOf(':');
     if (colonIndex > 0 && colonIndex < 50) {
@@ -45,7 +45,7 @@ const formatContent = (content: string): React.ReactNode => {
         </div>
       );
     }
-    
+
     return <div key={idx} className="py-1">{cleanedLine}</div>;
   });
 };
@@ -83,11 +83,11 @@ export function EnhancedAnalysisDashboard({ analysis, resumeText, className }: E
       const lines = section.trim().split('\n');
       const title = lines[0].trim();
       const content = lines.slice(1).join('\n').trim();
-      
+
       // Assign colors and icons based on section type
       let icon = '📋';
       let color = 'blue';
-      
+
       if (title.toLowerCase().includes('score') || title.toLowerCase().includes('match')) {
         icon = '📊'; color = 'blue';
       } else if (title.toLowerCase().includes('skills')) {
@@ -109,7 +109,7 @@ export function EnhancedAnalysisDashboard({ analysis, resumeText, className }: E
       } else if (title.toLowerCase().includes('plan') || title.toLowerCase().includes('action')) {
         icon = '📅'; color = 'red';
       }
-      
+
       return { title, content, icon, color };
     });
 
@@ -167,7 +167,7 @@ export function EnhancedAnalysisDashboard({ analysis, resumeText, className }: E
       const immediateMatches = actionSection[0].match(/\*\*Immediate Changes[^:]*:\*\*[\\s\\S]*?(?=\*\*|$)/i);
       const shortTermMatches = actionSection[0].match(/\*\*Short-term[^:]*:\*\*[\\s\\S]*?(?=\*\*|$)/i);
       const longTermMatches = actionSection[0].match(/\*\*Long-term[^:]*:\*\*[\\s\\S]*?(?=\*\*|$)/i);
-      
+
       if (immediateMatches) {
         const items = immediateMatches[0].match(/- ([^\\n]+)/g);
         items?.forEach(item => {
@@ -178,7 +178,7 @@ export function EnhancedAnalysisDashboard({ analysis, resumeText, className }: E
           });
         });
       }
-      
+
       if (shortTermMatches) {
         const items = shortTermMatches[0].match(/- ([^\\n]+)/g);
         items?.forEach(item => {
@@ -189,7 +189,7 @@ export function EnhancedAnalysisDashboard({ analysis, resumeText, className }: E
           });
         });
       }
-      
+
       if (longTermMatches) {
         const items = longTermMatches[0].match(/- ([^\\n]+)/g);
         items?.forEach(item => {
@@ -204,7 +204,7 @@ export function EnhancedAnalysisDashboard({ analysis, resumeText, className }: E
 
     // Generate key insights based on scores
     const keyInsights: { type: 'positive' | 'warning' | 'critical'; message: string }[] = [];
-    
+
     if (overallScore >= 80) {
       keyInsights.push({
         type: 'positive',
@@ -245,14 +245,14 @@ export function EnhancedAnalysisDashboard({ analysis, resumeText, className }: E
       if (skillMatch) {
         const skillName = skillMatch[1].trim();
         const proficiency = skillMatch[2].trim().toLowerCase();
-        
+
         let score = 50;
         if (proficiency.includes('proficient')) score = 85;
         else if (proficiency.includes('familiar')) score = 60;
         else if (proficiency.includes('expert')) score = 95;
         else if (proficiency.includes('beginner')) score = 40;
         else if (proficiency.includes('advanced')) score = 90;
-        
+
         return { skill: skillName, score };
       }
       return { skill: `Skill ${index + 1}`, score: 70 };
@@ -314,11 +314,10 @@ export function EnhancedAnalysisDashboard({ analysis, resumeText, className }: E
   const TabButton = ({ id, label, icon }: { id: typeof activeTab; label: string; icon: string }) => (
     <button
       onClick={() => setActiveTab(id)}
-      className={`flex items-center px-6 py-3 rounded-lg font-semibold transition-all duration-200 ${
-        activeTab === id
+      className={`flex items-center px-6 py-3 rounded-lg font-semibold transition-all duration-200 ${activeTab === id
           ? 'bg-red-600 text-white'
           : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white border border-zinc-700'
-      }`}
+        }`}
     >
       <span className="mr-2">{icon}</span>
       {label}
@@ -334,7 +333,7 @@ export function EnhancedAnalysisDashboard({ analysis, resumeText, className }: E
     >
       {/* Enhanced Header with Score Summary */}
       <div className="text-center space-y-6">
-        <motion.h2 
+        <motion.h2
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
@@ -342,7 +341,7 @@ export function EnhancedAnalysisDashboard({ analysis, resumeText, className }: E
         >
           Resume Analysis Dashboard
         </motion.h2>
-        
+
         {/* Overall Score Hero Section */}
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
@@ -352,7 +351,7 @@ export function EnhancedAnalysisDashboard({ analysis, resumeText, className }: E
         >
           {/* Top accent line */}
           <div className="absolute inset-x-0 top-0 h-0.5 bg-red-600 rounded-t-3xl" />
-          
+
           <div className="flex flex-col md:flex-row items-center justify-center gap-8">
             <div className="text-center">
               <div className="text-7xl font-bold text-red-500 mb-2">
@@ -361,17 +360,16 @@ export function EnhancedAnalysisDashboard({ analysis, resumeText, className }: E
               <div className="text-xl font-semibold text-zinc-300">
                 Overall Match Score
               </div>
-              <div className={`text-sm mt-3 px-4 py-2 rounded-full font-medium border ${
-                parsedData.overallScore >= 80 ? 'bg-green-500/10 text-green-400 border-green-500/30' :
-                parsedData.overallScore >= 60 ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30' :
-                'bg-red-500/10 text-red-400 border-red-500/30'
-              }`}>
+              <div className={`text-sm mt-3 px-4 py-2 rounded-full font-medium border ${parsedData.overallScore >= 80 ? 'bg-green-500/10 text-green-400 border-green-500/30' :
+                  parsedData.overallScore >= 60 ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30' :
+                    'bg-red-500/10 text-red-400 border-red-500/30'
+                }`}>
                 {parsedData.overallScore >= 80 ? '🎉 Excellent Match!' :
-                 parsedData.overallScore >= 60 ? '👍 Good Foundation' :
-                 '🔧 Needs Improvement'}
+                  parsedData.overallScore >= 60 ? '👍 Good Foundation' :
+                    '🔧 Needs Improvement'}
               </div>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div className="text-center p-4 bg-zinc-800/50 border border-zinc-700/50 rounded-xl backdrop-blur-sm">
                 <div className="text-2xl font-bold text-emerald-400">{parsedData.skillsScore}%</div>
@@ -405,21 +403,19 @@ export function EnhancedAnalysisDashboard({ analysis, resumeText, className }: E
           {parsedData.keyInsights.map((insight, index) => (
             <div
               key={index}
-              className={`p-4 rounded-xl border-l-4 backdrop-blur-sm ${
-                insight.type === 'positive' ? 'border-green-500 bg-green-500/10' :
-                insight.type === 'warning' ? 'border-yellow-500 bg-yellow-500/10' :
-                'border-red-500 bg-red-500/10'
-              }`}
+              className={`p-4 rounded-xl border-l-4 backdrop-blur-sm ${insight.type === 'positive' ? 'border-green-500 bg-green-500/10' :
+                  insight.type === 'warning' ? 'border-yellow-500 bg-yellow-500/10' :
+                    'border-red-500 bg-red-500/10'
+                }`}
             >
               <div className="flex items-start space-x-3">
                 <span className="text-lg">
                   {insight.type === 'positive' ? '✅' : insight.type === 'warning' ? '⚠️' : '🚨'}
                 </span>
-                <p className={`text-sm font-medium ${
-                  insight.type === 'positive' ? 'text-green-400' :
-                  insight.type === 'warning' ? 'text-yellow-400' :
-                  'text-red-400'
-                }`}>
+                <p className={`text-sm font-medium ${insight.type === 'positive' ? 'text-green-400' :
+                    insight.type === 'warning' ? 'text-yellow-400' :
+                      'text-red-400'
+                  }`}>
                   {cleanMarkdown(insight.message)}
                 </p>
               </div>
@@ -641,7 +637,7 @@ export function EnhancedAnalysisDashboard({ analysis, resumeText, className }: E
                 <span className="mr-2">📄</span>Document Preview
               </h3>
               <p className="text-sm text-zinc-400 mb-6">
-                This is the raw content extracted from your uploaded file and analyzed by our AI. 
+                This is the raw content extracted from your uploaded file and analyzed by our AI.
                 If the layout looks significantly wrong or words are missing, try uploading a cleaner PDF or Word document.
               </p>
               <div className="bg-zinc-950 p-6 rounded-xl border border-zinc-800/50 max-h-[600px] overflow-y-auto font-mono text-sm leading-relaxed text-zinc-300 whitespace-pre-wrap">
