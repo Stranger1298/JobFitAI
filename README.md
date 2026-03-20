@@ -14,7 +14,9 @@ A powerful Next.js application that uses Google's Gemini AI to analyze resumes a
 - **📈 Visual Analytics**: Beautiful charts and graphs for data visualization
 - **🔑 Keyword Analysis**: Identify missing and matching keywords
 - **💡 Smart Suggestions**: Personalized interview tips and improvement recommendations
+- **💳 Pro Resume Improvement (₹99)**: Unlock advanced improvement suggestions and action plan
 - **📁 Multi-Format Support**: Upload PDF, DOC, and DOCX resume formats
+- **🧪 Dummy Job Descriptions (Free)**: Instantly test with your resume + built-in sample job descriptions
 - **🌙 Dark Theme**: Sleek black and red design with smooth animations
 - **📱 Responsive**: Works seamlessly on desktop and mobile devices
 - **📊 Vercel Analytics**: Built-in analytics for tracking usage
@@ -59,12 +61,25 @@ A powerful Next.js application that uses Google's Gemini AI to analyze resumes a
    GEMINI_API_KEY=your_gemini_api_key_here
    ```
 
-4. Run the development server:
+4. Configure billing variables (for Pro mode):
+   ```
+   NEXT_PUBLIC_APP_URL=http://localhost:3000
+   DODO_PAYMENTS_API_KEY=your_dodo_api_key
+   DODO_PAYMENTS_PRODUCT_ID=your_dodo_product_id_for_99_inr
+   PAYMENT_ACCESS_SIGNING_SECRET=replace_with_a_long_random_secret
+   ```
+
+   For local development only, you can bypass payment and force Pro access:
+   ```
+   DEV_FORCE_PRO_ACCESS=true
+   ```
+
+5. Run the development server:
    ```bash
    npm run dev
    ```
 
-5. Open [http://localhost:3000](http://localhost:3000) in your browser.
+6. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ### Getting a Gemini API Key
 
@@ -77,8 +92,9 @@ A powerful Next.js application that uses Google's Gemini AI to analyze resumes a
 
 1. **Upload Resume**: Click or drag and drop your resume file (PDF, DOC, or DOCX)
 2. **Enter Job Description**: Paste the job description in the text area
-3. **Analyze**: Click the "Analyze Resume" button
-4. **Review Results**: Get detailed AI-powered feedback and suggestions
+3. **Or use free dummy JDs**: Pick a sample JD to test instantly
+4. **Analyze**: Run free analysis or unlock Pro for deeper improvements
+5. **Review Results**: Get AI-powered feedback and suggestions
 
 ## Project Structure
 
@@ -107,6 +123,11 @@ src/
 | Variable | Description | Required |
 |----------|-------------|----------|
 | `GEMINI_API_KEY` | Google Gemini AI API key | Yes |
+| `NEXT_PUBLIC_APP_URL` | Base app URL used by payment return URL | Yes (for Pro) |
+| `DODO_PAYMENTS_API_KEY` | Dodo Payments API key | Yes (for Pro) |
+| `DODO_PAYMENTS_PRODUCT_ID` | Dodo product ID priced at ₹99 | Yes (for Pro) |
+| `PAYMENT_ACCESS_SIGNING_SECRET` | Secret used to sign paid-access cookie | Yes (for Pro) |
+| `DEV_FORCE_PRO_ACCESS` | Force-enable Pro without payment in non-production only | No |
 
 ## Contributing
 

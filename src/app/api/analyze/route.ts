@@ -1,16 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import mammoth from 'mammoth';
 import { analyzeResumeWithGemini } from '@/lib/gemini';
+import { hasProAccess } from '@/lib/payment-access';
 
 // Dynamic import for pdf-parse to avoid build issues
 async function extractPDFText(buffer: Buffer): Promise<string> {
   try {
     // Import the implementation directly to avoid pdf-parse's index.js test runner
-  const pdfParseModule = await import('pdf-parse/lib/pdf-parse.js');
-  // The module is declared in src/types/pdf-parse-impl.d.ts
-  const pdfParse = (pdfParseModule && (pdfParseModule.default || pdfParseModule)) as (data: Buffer) => Promise<{ text: string }>;
-  const data = await pdfParse(buffer);
-    return data.text;
+    const pdfParseModule = await import('pdf-parse/lib/pdf-parse.js');
+    // The module is declared in src/types/pdf-parse-impl.d.ts
+    const pdfParse = (pdfParseModule && (pdfParseModule.default || pdfParseModule)) as (data: Buffer) => Promise<{ text: string }>;
+    const data = await pdfParse(buffer);
+    
+    // Clean up parsed text for better readability and AI comprehension
+    let text = data.text;
+    text = text.replace(/-\n/g, ''); // Fix hyphenated line breaks
+    text = text.replace(/\n\s*\n\s*\n/g, '\n\n'); // Normalize excessive newlines
+    return text.trim();
   } catch (error) {
     console.error('Error with PDF extraction:', error);
     throw new Error('PDF extraction failed. Please try converting to TXT or DOCX format.');
@@ -39,13 +45,19 @@ async function extractTextFromBuffer(buffer: Buffer, fileType: string, fileName:
 
 export async function POST(request: NextRequest) {
   try {
+    const userHasProAccess = hasProAccess(request);
     const formData = await request.formData();
-    const resumeFile = formData.get('resume') as File;
-    const jobDescriptionFile = formData.get('jobDescriptionFile') as File;
+    const resumeValue = formData.get('resume');
+    const resumeFile = resumeValue instanceof File ? resumeValue : null;
+    const resumeTextInput = String(formData.get('resumeText') || '').trim();
+    const jdFileValue = formData.get('jobDescriptionFile');
+    const jobDescriptionFile = jdFileValue instanceof File ? jdFileValue : null;
     const jobDescriptionText = formData.get('jobDescription') as string;
+    const requestedMode = String(formData.get('analysisMode') || 'free').toLowerCase();
+    const includeImprovementSuggestions = requestedMode === 'pro' && userHasProAccess;
 
-    if (!resumeFile) {
-      return NextResponse.json({ error: 'No resume file uploaded' }, { status: 400 });
+    if (!resumeFile && !resumeTextInput) {
+      return NextResponse.json({ error: 'Please upload a resume file or provide resume text.' }, { status: 400 });
     }
 
     // Validate that we have either job description text or file
@@ -55,18 +67,21 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Extract text from resume
-    const resumeBytes = await resumeFile.arrayBuffer();
-    const resumeBuffer = Buffer.from(resumeBytes);
-    
     let resumeText = '';
-    try {
-      resumeText = await extractTextFromBuffer(resumeBuffer, resumeFile.type, resumeFile.name);
-    } catch (error) {
-      console.error('Error extracting resume text:', error);
-      return NextResponse.json({ 
-        error: `Failed to extract text from resume: ${error instanceof Error ? error.message : 'Unknown error'}` 
-      }, { status: 400 });
+
+    if (resumeTextInput) {
+      resumeText = resumeTextInput;
+    } else if (resumeFile) {
+      const resumeBytes = await resumeFile.arrayBuffer();
+      const resumeBuffer = Buffer.from(resumeBytes);
+      try {
+        resumeText = await extractTextFromBuffer(resumeBuffer, resumeFile.type, resumeFile.name);
+      } catch (error) {
+        console.error('Error extracting resume text:', error);
+        return NextResponse.json({
+          error: `Failed to extract text from resume: ${error instanceof Error ? error.message : 'Unknown error'}`
+        }, { status: 400 });
+      }
     }
 
     // Extract job description (from file or use provided text)
@@ -102,14 +117,20 @@ export async function POST(request: NextRequest) {
     // Analyze with Gemini
     try {
       console.log('Starting Gemini analysis...');
-      const analysis = await analyzeResumeWithGemini(resumeText, jobDescription);
+      const analysis = await analyzeResumeWithGemini(resumeText, jobDescription, {
+        includeImprovementSuggestions
+      });
       console.log('Gemini analysis completed successfully');
 
       return NextResponse.json({
         success: true,
         analysis,
-        resumeText: resumeText.substring(0, 500) + '...', // Preview
-        jobDescriptionText: jobDescription.substring(0, 300) + '...', // Preview
+        hasProAccess: userHasProAccess,
+        includeImprovementSuggestions,
+        resumeTextFull: resumeText,
+        jobDescriptionFull: jobDescription,
+        resumeText: resumeText, // Full preview
+        jobDescriptionText: jobDescription, // Full preview
       });
     } catch (error) {
       console.error('Error analyzing with Gemini:', error);

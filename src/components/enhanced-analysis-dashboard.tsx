@@ -52,6 +52,7 @@ const formatContent = (content: string): React.ReactNode => {
 
 interface EnhancedAnalysisDashboardProps {
   analysis: string;
+  resumeText?: string;
   className?: string;
 }
 
@@ -73,8 +74,8 @@ interface ParsedAnalysis {
   keyInsights: { type: 'positive' | 'warning' | 'critical'; message: string }[];
 }
 
-export function EnhancedAnalysisDashboard({ analysis, className }: EnhancedAnalysisDashboardProps) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'details' | 'actions'>('overview');
+export function EnhancedAnalysisDashboard({ analysis, resumeText, className }: EnhancedAnalysisDashboardProps) {
+  const [activeTab, setActiveTab] = useState<'overview' | 'details' | 'preview' | 'actions'>('overview');
 
   const parseAnalysis = (text: string): ParsedAnalysis => {
     const sections = text.split('##').filter(section => section.trim().length > 0);
@@ -438,6 +439,7 @@ export function EnhancedAnalysisDashboard({ analysis, className }: EnhancedAnaly
           <TabButton id="overview" label="Overview" icon="📊" />
           <TabButton id="details" label="Detailed Analysis" icon="🔍" />
           <TabButton id="actions" label="Action Plan" icon="🚀" />
+          {resumeText && <TabButton id="preview" label="Resume Preview" icon="📄" />}
         </div>
       </motion.div>
 
@@ -627,6 +629,23 @@ export function EnhancedAnalysisDashboard({ analysis, className }: EnhancedAnaly
                 <ProgressRing percentage={parsedData.overallScore} label="Overall Score" color="#dc2626" />
                 <ProgressRing percentage={parsedData.skillsScore} label="Skills Gap" color="#10B981" />
                 <ProgressRing percentage={parsedData.atsScore} label="ATS Ready" color="#F59E0B" />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'preview' && resumeText && (
+          <div className="space-y-6">
+            <div className="bg-zinc-900 rounded-2xl p-6 border border-zinc-800">
+              <h3 className="text-lg font-bold text-white mb-4 flex items-center">
+                <span className="mr-2">📄</span>Document Preview
+              </h3>
+              <p className="text-sm text-zinc-400 mb-6">
+                This is the raw content extracted from your uploaded file and analyzed by our AI. 
+                If the layout looks significantly wrong or words are missing, try uploading a cleaner PDF or Word document.
+              </p>
+              <div className="bg-zinc-950 p-6 rounded-xl border border-zinc-800/50 max-h-[600px] overflow-y-auto font-mono text-sm leading-relaxed text-zinc-300 whitespace-pre-wrap">
+                {resumeText}
               </div>
             </div>
           </div>

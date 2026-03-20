@@ -10,31 +10,14 @@ import { CardHeader, CardContent, CardTitle, GlowCard } from '@/components/ui/ca
 import { AnimatedBackground } from '@/components/ui/animated-background';
 import { EnhancedAnalysisDashboard } from '@/components/enhanced-analysis-dashboard';
 import { AnalysisLoading } from '@/components/ui/loading';
+import { DUMMY_JOB_DESCRIPTIONS } from '@/lib/dummy-job-descriptions';
+import { ProResumeWorkspace } from '@/components/pro-resume-workspace';
+import { ImprovementTestResult } from '@/types/pro';
 
 // Sample data for demo
-const SAMPLE_JOB_DESCRIPTION = `Senior Frontend Developer
-
-We are looking for an experienced Frontend Developer to join our team.
-
-Requirements:
-- 5+ years of experience with React.js and TypeScript
-- Strong understanding of modern CSS (Tailwind, styled-components)
-- Experience with state management (Redux, Zustand, or similar)
-- Familiarity with Next.js and server-side rendering
-- Knowledge of testing frameworks (Jest, React Testing Library)
-- Experience with Git and CI/CD pipelines
-- Strong problem-solving and communication skills
-
-Nice to have:
-- Experience with GraphQL
-- Knowledge of accessibility standards (WCAG)
-- Background in design systems
-
-Benefits:
-- Competitive salary
-- Remote work options
-- Health insurance
-- Learning budget`;
+const DEFAULT_SAMPLE_JOB_DESCRIPTION = DUMMY_JOB_DESCRIPTIONS[0]?.description || '';
+const IMPROVEMENT_TESTS_STORAGE_KEY = 'jobfit-improvement-tests';
+const DODO_DIRECT_CHECKOUT_URL = 'https://checkout.dodopayments.com/buy/pdt_0NatX1yls1LB7umZFnu8V?quantity=1';
 
 // History item type
 interface AnalysisHistoryItem {
@@ -59,6 +42,16 @@ export default function Home() {
   const [history, setHistory] = useState<AnalysisHistoryItem[]>([]);
   const [copySuccess, setCopySuccess] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showAnnouncements, setShowAnnouncements] = useState(false);
+  const [hasProAccess, setHasProAccess] = useState(false);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [selectedDummyJDId, setSelectedDummyJDId] = useState<string>(
+    DUMMY_JOB_DESCRIPTIONS[0]?.id || ''
+  );
+  const [latestResumeText, setLatestResumeText] = useState('');
+  const [latestJobDescription, setLatestJobDescription] = useState('');
+  const [baselineScore, setBaselineScore] = useState<number | null>(null);
+  const [improvementTests, setImprovementTests] = useState<ImprovementTestResult[]>([]);
   
   // Use a ref to track if a request is in progress to prevent duplicates
   const requestInProgress = useRef(false);
@@ -80,6 +73,35 @@ export default function Home() {
       }
     }
   }, []);
+
+  useEffect(() => {
+    const checkProAccess = async () => {
+      try {
+        const response = await fetch('/api/payments/access');
+        if (!response.ok) return;
+        const data = await response.json();
+        setHasProAccess(Boolean(data?.hasAccess));
+      } catch (e) {
+        console.error('Failed to fetch pro access state:', e);
+      }
+    };
+
+    checkProAccess();
+  }, []);
+
+  useEffect(() => {
+    const savedTests = localStorage.getItem(IMPROVEMENT_TESTS_STORAGE_KEY);
+    if (!savedTests) return;
+    try {
+      setImprovementTests(JSON.parse(savedTests));
+    } catch {
+      setImprovementTests([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(IMPROVEMENT_TESTS_STORAGE_KEY, JSON.stringify(improvementTests));
+  }, [improvementTests]);
 
   // Save history to localStorage when it changes
   useEffect(() => {
@@ -111,6 +133,7 @@ export default function Home() {
       if (e.key === 'Escape') {
         setShowHistory(false);
         setShowShareModal(false);
+        setShowAnnouncements(false);
       }
       // Ctrl/Cmd + H to toggle history
       if ((e.ctrlKey || e.metaKey) && e.key === 'h') {
@@ -139,9 +162,81 @@ export default function Home() {
 
   // Load sample data for demo
   const loadSampleData = useCallback(() => {
-    setJobDescriptionText(SAMPLE_JOB_DESCRIPTION);
+    setJobDescriptionText(DEFAULT_SAMPLE_JOB_DESCRIPTION);
     setInputMode('text');
     setError(null);
+  }, []);
+
+  const loadDummyJobDescription = useCallback((id?: string) => {
+    const selectedId = id || selectedDummyJDId;
+    const selected = DUMMY_JOB_DESCRIPTIONS.find((item) => item.id === selectedId);
+    if (!selected) return;
+    setJobDescriptionText(selected.description);
+    setInputMode('text');
+    setError(null);
+  }, [selectedDummyJDId]);
+
+  const verifyPaymentSession = useCallback(async (sessionId: string) => {
+    const response = await fetch('/api/payments/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId })
+    });
+
+    const data = await response.json();
+    if (response.ok && data?.success) {
+      setHasProAccess(true);
+      return true;
+    }
+
+    return false;
+  }, []);
+
+  useEffect(() => {
+    const attemptPaymentVerification = async () => {
+      const url = new URL(window.location.href);
+      const querySessionId =
+        url.searchParams.get('checkout_session_id') ||
+        url.searchParams.get('session_id') ||
+        url.searchParams.get('checkout_id');
+      const pendingSessionId = localStorage.getItem('jobfit-pending-checkout-id');
+      const sessionId = querySessionId || pendingSessionId;
+
+      if (!sessionId) return;
+
+      try {
+        setPaymentLoading(true);
+        const ok = await verifyPaymentSession(sessionId);
+        if (ok) {
+          localStorage.removeItem('jobfit-pending-checkout-id');
+          setError(null);
+        }
+      } catch (e) {
+        console.error('Payment verification failed:', e);
+      } finally {
+        setPaymentLoading(false);
+        if (url.searchParams.has('payment') || querySessionId) {
+          url.searchParams.delete('payment');
+          url.searchParams.delete('checkout_session_id');
+          url.searchParams.delete('session_id');
+          url.searchParams.delete('checkout_id');
+          window.history.replaceState({}, '', url.toString());
+        }
+      }
+    };
+
+    attemptPaymentVerification();
+  }, [verifyPaymentSession]);
+
+  const handleUnlockPro = useCallback(async () => {
+    try {
+      setPaymentLoading(true);
+      setError(null);
+      window.location.href = DODO_DIRECT_CHECKOUT_URL;
+    } catch (err) {
+      setPaymentLoading(false);
+      setError(err instanceof Error ? err.message : 'Payment failed to start.');
+    }
   }, []);
 
   // Copy analysis to clipboard
@@ -202,6 +297,41 @@ export default function Home() {
     localStorage.removeItem('jobfit-history');
   }, []);
 
+  const extractOverallScore = useCallback((analysisText: string): number => {
+    const scoreMatch = analysisText.match(/(?:Overall.*Score|Match.*Score):?\s*[^\d]*(\d+(?:\.\d+)?)[%\/]?/i);
+    return scoreMatch ? parseInt(scoreMatch[1], 10) : 0;
+  }, []);
+
+  const handleSaveTestResult = useCallback((result: ImprovementTestResult) => {
+    setImprovementTests((prev) => [...prev, result].slice(-20));
+  }, []);
+
+  const handleRunImprovementTest = useCallback(async (editedResumeText: string): Promise<number> => {
+    const activeJD = latestJobDescription || jobDescriptionText;
+    if (!activeJD.trim()) {
+      throw new Error('Job description is missing for improvement test.');
+    }
+
+    const formData = new FormData();
+    formData.append('resumeText', editedResumeText);
+    formData.append('jobDescription', activeJD);
+    formData.append('analysisMode', 'pro');
+
+    const response = await fetch('/api/analyze', {
+      method: 'POST',
+      body: formData
+    });
+
+    const data = await response.json();
+    if (!response.ok || !data?.analysis) {
+      throw new Error(data?.error || 'Failed to test improved resume.');
+    }
+
+    setAnalysis(data.analysis);
+    const nextScore = extractOverallScore(data.analysis);
+    return nextScore;
+  }, [extractOverallScore, jobDescriptionText, latestJobDescription]);
+
   const handleAnalyze = async () => {
     if (!selectedResumeFile) {
       setError('Please upload a resume file');
@@ -242,6 +372,7 @@ export default function Home() {
     try {
       const formData = new FormData();
       formData.append('resume', selectedResumeFile);
+      formData.append('analysisMode', 'free');
       
       if (inputMode === 'text') {
         formData.append('jobDescription', jobDescriptionText);
@@ -286,7 +417,17 @@ export default function Home() {
         throw new Error('No analysis data received from server');
       }
 
+      if (typeof data.hasProAccess === 'boolean') {
+        setHasProAccess(data.hasProAccess);
+      }
+
       setAnalysis(data.analysis);
+      const nextBaselineScore = extractOverallScore(data.analysis);
+      setBaselineScore(nextBaselineScore);
+      setLatestResumeText(String(data.resumeTextFull || ''));
+      setLatestJobDescription(String(data.jobDescriptionFull || jobDescriptionText || ''));
+      setImprovementTests([]);
+      localStorage.removeItem(IMPROVEMENT_TESTS_STORAGE_KEY);
       // Save to history
       if (selectedResumeFile) {
         saveToHistory(data.analysis, selectedResumeFile.name);
@@ -321,6 +462,11 @@ export default function Home() {
     setSelectedJDFile(null);
     setJobDescriptionText('');
     setAnalysis(null);
+    setLatestResumeText('');
+    setLatestJobDescription('');
+    setBaselineScore(null);
+    setImprovementTests([]);
+    localStorage.removeItem(IMPROVEMENT_TESTS_STORAGE_KEY);
     setError(null);
     setLoading(false);
   };
@@ -342,6 +488,16 @@ export default function Home() {
               <span className="text-xl font-bold text-white">JobFit <span className="text-red-500">AI</span></span>
             </div>
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowAnnouncements(true)}
+                className="flex items-center gap-2 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-sm text-zinc-300 hover:bg-zinc-700 hover:text-white transition-colors"
+                title="What's New"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5a2 2 0 114 0c0 1.1-.9 2-2 2h0a2 2 0 01-2-2zm2 4v6m0 4h.01M5 12a7 7 0 1114 0c0 2.576 1 4 2 5H3c1-1 2-2.424 2-5z" />
+                </svg>
+                <span className="hidden sm:inline">What&apos;s New</span>
+              </button>
               {/* History Button */}
               <button
                 onClick={() => setShowHistory(!showHistory)}
@@ -454,6 +610,62 @@ export default function Home() {
                 <button
                   onClick={() => setShowShareModal(false)}
                   className="px-4 py-2 bg-zinc-800 text-zinc-300 rounded-lg hover:bg-zinc-700 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Announcement Modal */}
+      <AnimatePresence>
+        {showAnnouncements && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowAnnouncements(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-xl w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-white">What&apos;s New</h3>
+                <button onClick={() => setShowAnnouncements(false)} className="text-zinc-400 hover:text-white">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="space-y-3 text-sm text-zinc-300">
+                <div className="rounded-lg border border-zinc-700 bg-zinc-800/50 p-3">
+                  <p className="font-semibold text-white mb-1">Pro Resume Builder is now live</p>
+                  <p>Use structured editing for Summary, Experience, Skills, Education, and Projects.</p>
+                </div>
+                <div className="rounded-lg border border-zinc-700 bg-zinc-800/50 p-3">
+                  <p className="font-semibold text-white mb-1">Professional Templates + Preview</p>
+                  <p>Switch between Classic, Modern, and Compact layouts with document-style preview.</p>
+                </div>
+                <div className="rounded-lg border border-zinc-700 bg-zinc-800/50 p-3">
+                  <p className="font-semibold text-white mb-1">AI Rewrite + Improvement Testing</p>
+                  <p>Rewrite each section using AI and test score changes against your baseline analysis.</p>
+                </div>
+                <div className="rounded-lg border border-zinc-700 bg-zinc-800/50 p-3">
+                  <p className="font-semibold text-white mb-1">Export Options</p>
+                  <p>Download edited resume as TXT or PDF directly from the Pro workspace.</p>
+                </div>
+              </div>
+              <div className="mt-5 flex justify-end">
+                <button
+                  onClick={() => setShowAnnouncements(false)}
+                  className="px-4 py-2 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 transition-colors"
                 >
                   Close
                 </button>
@@ -619,6 +831,33 @@ export default function Home() {
                       </svg>
                       Try with sample job description
                     </button>
+                  )}
+
+                  {inputMode === 'text' && (
+                    <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-900/70 p-3">
+                      <p className="text-xs text-zinc-400">
+                        Free Dummy JDs: test quickly with your own resume plus platform-provided job descriptions.
+                      </p>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <select
+                          value={selectedDummyJDId}
+                          onChange={(e) => setSelectedDummyJDId(e.target.value)}
+                          className="flex-1 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-200 focus:border-red-500 focus:outline-none"
+                        >
+                          {DUMMY_JOB_DESCRIPTIONS.map((item) => (
+                            <option key={item.id} value={item.id}>
+                              {item.title} ({item.level})
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={() => loadDummyJobDescription()}
+                          className="rounded-lg border border-zinc-700 px-3 py-2 text-sm text-zinc-300 hover:border-red-500/60 hover:text-white transition-colors"
+                        >
+                          Load Selected
+                        </button>
+                      </div>
+                    </div>
                   )}
 
                   {inputMode === 'text' ? (
@@ -817,6 +1056,43 @@ export default function Home() {
         {/* Results */}
         {analysis && !loading && (
           <div className="space-y-8">
+            {!hasProAccess && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-2xl border border-red-500/30 bg-zinc-900/90 p-5"
+              >
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <h3 className="text-xl font-semibold text-white">Unlock Pro Resume Builder - ₹99</h3>
+                    <p className="text-sm text-zinc-400 mt-1">
+                      Get AI improvement recommendations, edit your resume on-platform, switch templates, and test score improvements.
+                    </p>
+                  </div>
+                  <div className="w-full md:w-auto flex flex-col sm:flex-row gap-2">
+                    <button
+                      onClick={handleUnlockPro}
+                      disabled={paymentLoading}
+                      className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-70"
+                    >
+                      {paymentLoading ? 'Processing...' : 'Unlock & Edit on Platform'}
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {hasProAccess && (
+              <ProResumeWorkspace
+                sourceResumeText={latestResumeText}
+                jobDescription={latestJobDescription || jobDescriptionText}
+                baselineScore={baselineScore}
+                testResults={improvementTests}
+                onSaveTestResult={handleSaveTestResult}
+                onRunImprovementTest={handleRunImprovementTest}
+              />
+            )}
+
             {/* Action Bar */}
             <motion.div
               initial={{ opacity: 0, y: -10 }}
@@ -876,7 +1152,7 @@ export default function Home() {
               </button>
             </motion.div>
 
-            <EnhancedAnalysisDashboard analysis={analysis} />
+            <EnhancedAnalysisDashboard analysis={analysis} resumeText={latestResumeText} />
             
             {/* Back to Home Button */}
             <motion.div
