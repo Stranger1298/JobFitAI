@@ -92,7 +92,7 @@ interface SkillsRadarProps {
   skills: { skill: string; score: number }[];
 }
 
-export function SkillsRadarChart({ skills }: SkillsRadarProps) {
+export const SkillsRadarChart = React.memo(function SkillsRadarChart({ skills }: SkillsRadarProps) {
   const data = {
     labels: skills.map(s => s.skill),
     datasets: [
@@ -146,13 +146,13 @@ export function SkillsRadarChart({ skills }: SkillsRadarProps) {
       <Radar data={data} options={options} />
     </div>
   );
-}
+});
 
 interface ComparisonBarProps {
   categories: { category: string; current: number; target: number }[];
 }
 
-export function ComparisonBarChart({ categories }: ComparisonBarProps) {
+export const ComparisonBarChart = React.memo(function ComparisonBarChart({ categories }: ComparisonBarProps) {
   const data = {
     labels: categories.map(c => c.category),
     datasets: [
@@ -213,7 +213,7 @@ export function ComparisonBarChart({ categories }: ComparisonBarProps) {
       <Bar data={data} options={options} />
     </div>
   );
-}
+});
 
 interface ProgressRingProps {
   percentage: number;
@@ -222,7 +222,7 @@ interface ProgressRingProps {
   size?: number;
 }
 
-export function ProgressRing({ percentage, label, color, size = 120 }: ProgressRingProps) {
+export const ProgressRing = React.memo(function ProgressRing({ percentage, label, color, size = 120 }: ProgressRingProps) {
   const radius = (size - 20) / 2;
   const circumference = radius * 2 * Math.PI;
   const strokeDasharray = `${circumference} ${circumference}`;
@@ -268,4 +268,4 @@ export function ProgressRing({ percentage, label, color, size = 120 }: ProgressR
       </p>
     </div>
   );
-}
+});

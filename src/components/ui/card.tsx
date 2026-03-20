@@ -35,7 +35,7 @@ interface CardHeaderProps {
 
 export function CardHeader({ children, className }: CardHeaderProps) {
   return (
-    <div className={cn("px-8 pt-8 pb-6", className)}>
+    <div className={cn("px-4 sm:px-6 md:px-8 pt-4 sm:pt-6 md:pt-8 pb-4 md:pb-6", className)}>
       {children}
     </div>
   );
@@ -48,7 +48,7 @@ interface CardContentProps {
 
 export function CardContent({ children, className }: CardContentProps) {
   return (
-    <div className={cn("px-8 pb-8", className)}>
+    <div className={cn("px-4 sm:px-6 md:px-8 pb-4 md:pb-8", className)}>
       {children}
     </div>
   );
@@ -100,7 +100,7 @@ export function GlowCard({ children, className }: GlowCardProps) {
     >
       {/* Top accent line */}
       <div className="absolute inset-x-0 top-0 h-0.5 bg-red-600" />
-      
+
       {/* Content container */}
       <div className="relative z-10">
         {children}

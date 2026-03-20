@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { SkillsRadarChart, ComparisonBarChart, ProgressRing } from '@/components/ui/charts';
 import { cn } from '@/lib/utils';
 
@@ -309,14 +309,14 @@ export function EnhancedAnalysisDashboard({ analysis, resumeText, className }: E
     };
   };
 
-  const parsedData = parseAnalysis(analysis);
+  const parsedData = useMemo(() => parseAnalysis(analysis), [analysis]);
 
   const TabButton = ({ id, label, icon }: { id: typeof activeTab; label: string; icon: string }) => (
     <button
       onClick={() => setActiveTab(id)}
-      className={`flex items-center px-6 py-3 rounded-lg font-semibold transition-all duration-200 ${activeTab === id
-          ? 'bg-red-600 text-white'
-          : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white border border-zinc-700'
+      className={`flex items-center px-2 sm:px-3 md:px-6 py-2 sm:py-2.5 md:py-3 rounded-lg font-semibold transition-all duration-200 text-xs sm:text-sm md:text-base whitespace-nowrap ${activeTab === id
+        ? 'bg-red-600 text-white'
+        : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white border border-zinc-700'
         }`}
     >
       <span className="mr-2">{icon}</span>
@@ -352,17 +352,17 @@ export function EnhancedAnalysisDashboard({ analysis, resumeText, className }: E
           {/* Top accent line */}
           <div className="absolute inset-x-0 top-0 h-0.5 bg-red-600 rounded-t-3xl" />
 
-          <div className="flex flex-col md:flex-row items-center justify-center gap-8">
+          <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8">
             <div className="text-center">
-              <div className="text-7xl font-bold text-red-500 mb-2">
+              <div className="text-4xl sm:text-5xl md:text-7xl font-bold text-red-500 mb-2">
                 {parsedData.overallScore}%
               </div>
-              <div className="text-xl font-semibold text-zinc-300">
+              <div className="text-sm sm:text-base md:text-xl font-semibold text-zinc-300">
                 Overall Match Score
               </div>
-              <div className={`text-sm mt-3 px-4 py-2 rounded-full font-medium border ${parsedData.overallScore >= 80 ? 'bg-green-500/10 text-green-400 border-green-500/30' :
-                  parsedData.overallScore >= 60 ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30' :
-                    'bg-red-500/10 text-red-400 border-red-500/30'
+              <div className={`text-xs sm:text-sm mt-3 px-3 sm:px-4 py-2 rounded-full font-medium border ${parsedData.overallScore >= 80 ? 'bg-green-500/10 text-green-400 border-green-500/30' :
+                parsedData.overallScore >= 60 ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30' :
+                  'bg-red-500/10 text-red-400 border-red-500/30'
                 }`}>
                 {parsedData.overallScore >= 80 ? '🎉 Excellent Match!' :
                   parsedData.overallScore >= 60 ? '👍 Good Foundation' :
@@ -370,22 +370,22 @@ export function EnhancedAnalysisDashboard({ analysis, resumeText, className }: E
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center p-4 bg-zinc-800/50 border border-zinc-700/50 rounded-xl backdrop-blur-sm">
-                <div className="text-2xl font-bold text-emerald-400">{parsedData.skillsScore}%</div>
-                <div className="text-sm text-zinc-500">Skills Match</div>
+            <div className="grid grid-cols-2 gap-2 sm:gap-3 md:gap-4">
+              <div className="text-center p-2 sm:p-3 md:p-4 bg-zinc-800/50 border border-zinc-700/50 rounded-lg sm:rounded-xl backdrop-blur-sm">
+                <div className="text-lg sm:text-xl md:text-2xl font-bold text-emerald-400">{parsedData.skillsScore}%</div>
+                <div className="text-xs sm:text-sm text-zinc-500">Skills</div>
               </div>
-              <div className="text-center p-4 bg-zinc-800/50 border border-zinc-700/50 rounded-xl backdrop-blur-sm">
-                <div className="text-2xl font-bold text-purple-400">{parsedData.atsScore}%</div>
-                <div className="text-sm text-zinc-500">ATS Score</div>
+              <div className="text-center p-2 sm:p-3 md:p-4 bg-zinc-800/50 border border-zinc-700/50 rounded-lg sm:rounded-xl backdrop-blur-sm">
+                <div className="text-lg sm:text-xl md:text-2xl font-bold text-purple-400">{parsedData.atsScore}%</div>
+                <div className="text-xs sm:text-sm text-zinc-500">ATS</div>
               </div>
-              <div className="text-center p-4 bg-zinc-800/50 border border-zinc-700/50 rounded-xl backdrop-blur-sm">
-                <div className="text-2xl font-bold text-orange-400">{parsedData.keywordMatchRate}%</div>
-                <div className="text-sm text-zinc-500">Keywords</div>
+              <div className="text-center p-2 sm:p-3 md:p-4 bg-zinc-800/50 border border-zinc-700/50 rounded-lg sm:rounded-xl backdrop-blur-sm">
+                <div className="text-lg sm:text-xl md:text-2xl font-bold text-orange-400">{parsedData.keywordMatchRate}%</div>
+                <div className="text-xs sm:text-sm text-zinc-500">Keywords</div>
               </div>
-              <div className="text-center p-4 bg-zinc-800/50 border border-zinc-700/50 rounded-xl backdrop-blur-sm">
-                <div className="text-2xl font-bold text-cyan-400">{parsedData.marketCompetitiveness}%</div>
-                <div className="text-sm text-zinc-500">Market Ready</div>
+              <div className="text-center p-2 sm:p-3 md:p-4 bg-zinc-800/50 border border-zinc-700/50 rounded-lg sm:rounded-xl backdrop-blur-sm">
+                <div className="text-lg sm:text-xl md:text-2xl font-bold text-cyan-400">{parsedData.marketCompetitiveness}%</div>
+                <div className="text-xs sm:text-sm text-zinc-500">Market</div>
               </div>
             </div>
           </div>
@@ -398,23 +398,23 @@ export function EnhancedAnalysisDashboard({ analysis, resumeText, className }: E
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="grid md:grid-cols-3 gap-4"
+          className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4"
         >
           {parsedData.keyInsights.map((insight, index) => (
             <div
               key={index}
-              className={`p-4 rounded-xl border-l-4 backdrop-blur-sm ${insight.type === 'positive' ? 'border-green-500 bg-green-500/10' :
-                  insight.type === 'warning' ? 'border-yellow-500 bg-yellow-500/10' :
-                    'border-red-500 bg-red-500/10'
+              className={`p-3 sm:p-4 rounded-lg sm:rounded-xl border-l-4 backdrop-blur-sm text-xs sm:text-sm ${insight.type === 'positive' ? 'border-green-500 bg-green-500/10' :
+                insight.type === 'warning' ? 'border-yellow-500 bg-yellow-500/10' :
+                  'border-red-500 bg-red-500/10'
                 }`}
             >
-              <div className="flex items-start space-x-3">
-                <span className="text-lg">
+              <div className="flex items-start space-x-2 sm:space-x-3">
+                <span className="text-base sm:text-lg flex-shrink-0">
                   {insight.type === 'positive' ? '✅' : insight.type === 'warning' ? '⚠️' : '🚨'}
                 </span>
-                <p className={`text-sm font-medium ${insight.type === 'positive' ? 'text-green-400' :
-                    insight.type === 'warning' ? 'text-yellow-400' :
-                      'text-red-400'
+                <p className={`font-medium ${insight.type === 'positive' ? 'text-green-400' :
+                  insight.type === 'warning' ? 'text-yellow-400' :
+                    'text-red-400'
                   }`}>
                   {cleanMarkdown(insight.message)}
                 </p>

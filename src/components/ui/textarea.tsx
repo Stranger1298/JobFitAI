@@ -24,12 +24,13 @@ export function Textarea({ label, error, className, ...props }: TextareaProps) {
       )}
       <textarea
         className={cn(
-          "w-full px-4 py-3 border border-zinc-700 rounded-xl shadow-sm",
+          "w-full px-3 sm:px-4 py-2 sm:py-3 border border-zinc-700 rounded-xl shadow-sm",
           "bg-zinc-900/80 text-white",
           "focus:ring-2 focus:ring-red-500/50 focus:border-red-500/50",
           "placeholder-zinc-500",
           "transition-all duration-300",
           "hover:border-zinc-600",
+          "text-sm sm:text-base",
           error && "border-red-500 focus:ring-red-500 focus:border-red-500",
           className
         )}
